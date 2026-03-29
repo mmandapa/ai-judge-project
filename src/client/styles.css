@@ -1,0 +1,311 @@
+:root {
+  color-scheme: light;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: #18222f;
+  background:
+    radial-gradient(circle at top left, rgba(242, 177, 120, 0.35), transparent 30%),
+    linear-gradient(180deg, #f7f3ee 0%, #eef3f8 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+.shell {
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  padding: 2rem 2rem 1rem;
+}
+
+.topbar h1 {
+  margin: 0.2rem 0 0;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.75rem;
+  color: #7d5c3d;
+}
+
+.nav {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.nav a {
+  text-decoration: none;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.nav a.active {
+  background: #18222f;
+  color: white;
+}
+
+.page {
+  padding: 1rem 2rem 2rem;
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.grid-two {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1rem;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(24, 34, 47, 0.08);
+  border-radius: 24px;
+  padding: 1.25rem;
+  box-shadow: 0 18px 60px rgba(24, 34, 47, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.card-header h2 {
+  margin: 0;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.8rem 1rem;
+  background: #e3e9ee;
+  color: #18222f;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.button-primary {
+  background: #18222f;
+  color: white;
+}
+
+.button-danger {
+  background: #94213a;
+  color: white;
+}
+
+.field,
+.checkbox {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  border: 1px solid rgba(24, 34, 47, 0.14);
+  border-radius: 16px;
+  padding: 0.85rem 0.95rem;
+  background: white;
+}
+
+.checkbox {
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.muted,
+.table-subtext,
+.judge-card-meta,
+.filter-label {
+  color: #5b6775;
+}
+
+.error {
+  color: #9d1d35;
+}
+
+.success {
+  color: #0d6d4b;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid rgba(24, 34, 47, 0.08);
+  vertical-align: top;
+}
+
+.judge-card {
+  text-align: left;
+  border: 1px solid rgba(24, 34, 47, 0.08);
+  border-radius: 18px;
+  background: #fff;
+  padding: 1rem;
+  cursor: pointer;
+}
+
+.judge-card p {
+  margin-bottom: 0;
+}
+
+.judge-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pill,
+.badge {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.pill {
+  background: #e6ebef;
+}
+
+.pill-active,
+.badge-pass {
+  background: #d6f3e6;
+  color: #166c4a;
+}
+
+.badge-fail,
+.badge-failed {
+  background: #f8d7de;
+  color: #94213a;
+}
+
+.badge-inconclusive {
+  background: #efe6bc;
+  color: #7b6220;
+}
+
+.chip-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chip {
+  border: 1px solid rgba(24, 34, 47, 0.12);
+  background: white;
+  border-radius: 999px;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}
+
+.chip-active {
+  background: #18222f;
+  border-color: #18222f;
+  color: white;
+}
+
+.assignment-row {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) 1fr;
+  gap: 1rem;
+  align-items: start;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(24, 34, 47, 0.08);
+}
+
+.assignment-row:last-child {
+  border-bottom: 0;
+}
+
+.stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stats div {
+  min-width: 130px;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  background: rgba(24, 34, 47, 0.04);
+}
+
+.stats strong {
+  display: block;
+  font-size: 1.8rem;
+}
+
+.answer-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+@media (max-width: 900px) {
+  .topbar,
+  .page {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .grid-two,
+  .assignment-row {
+    grid-template-columns: 1fr;
+  }
+}
