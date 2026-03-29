@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAnswerPreview, parseImportedSubmissions } from "../src/shared/parser";
+import { buildAnswerPreview, coerceImportedSubmissionsToQueue, parseImportedSubmissions } from "../src/shared/parser";
 
 const sample = JSON.stringify([
   {
@@ -45,6 +45,14 @@ describe("parseImportedSubmissions", () => {
         ]),
       ),
     ).toThrow();
+  });
+
+  it("can coerce imported submissions into a target queue", () => {
+    const submissions = parseImportedSubmissions(sample);
+    const normalized = coerceImportedSubmissionsToQueue(submissions, "queue_target");
+
+    expect(normalized[0]?.queueId).toBe("queue_target");
+    expect(submissions[0]?.queueId).toBe("queue_1");
   });
 });
 

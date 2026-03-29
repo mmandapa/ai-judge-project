@@ -26,6 +26,36 @@ export const importedSubmissionListSchema = z.array(importedSubmissionSchema);
 export type ImportedSubmission = z.infer<typeof importedSubmissionSchema>;
 export type ImportedQuestion = z.infer<typeof importedQuestionSchema>;
 
+export const promptFieldConfigSchema = z.object({
+  includeQuestionText: z.boolean(),
+  includeQuestionType: z.boolean(),
+  includeAnswer: z.boolean(),
+  includeSubmissionId: z.boolean(),
+  includeLabelingTaskId: z.boolean(),
+  includeAttachments: z.boolean(),
+});
+
+export type PromptFieldConfig = z.infer<typeof promptFieldConfigSchema>;
+
+export const defaultPromptFieldConfig: PromptFieldConfig = {
+  includeQuestionText: true,
+  includeQuestionType: true,
+  includeAnswer: true,
+  includeSubmissionId: true,
+  includeLabelingTaskId: true,
+  includeAttachments: true,
+};
+
+export type SubmissionAttachment = {
+  id: string;
+  submissionId: string;
+  fileName: string;
+  storagePath: string;
+  mimeType: string;
+  fileSize: number | null;
+  createdAt: string;
+};
+
 export type JudgeRecord = {
   id: string;
   name: string;
@@ -35,6 +65,17 @@ export type JudgeRecord = {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type QuestionJudgeAssignment = {
+  judgeId: string;
+  promptFieldConfig: PromptFieldConfig;
+};
+
+export type PromptPreviewData = {
+  system: string;
+  user: string;
+  attachmentsIncluded: boolean;
 };
 
 export type QueueSummary = {
@@ -56,6 +97,8 @@ export type SubmissionSummary = {
   id: string;
   createdAtSource: number;
   labelingTaskId: string | null;
+  hasAttachments: boolean;
+  attachments: SubmissionAttachment[];
   answers: Array<{
     questionTemplateId: string;
     answer: unknown;
@@ -65,7 +108,7 @@ export type SubmissionSummary = {
 export type QueueDetail = {
   queue: QueueSummary;
   questions: QueueQuestionTemplate[];
-  assignments: Record<string, string[]>;
+  assignments: Record<string, QuestionJudgeAssignment[]>;
   submissions: SubmissionSummary[];
 };
 
@@ -82,6 +125,7 @@ export type EvaluationRow = {
   reasoning: string;
   status: "completed" | "failed";
   errorMessage: string | null;
+  attachmentsUsed: boolean;
 };
 
 export type ResultsResponse = {
@@ -95,6 +139,67 @@ export type ResultsResponse = {
     judges: Array<{ id: string; name: string }>;
     questions: Array<{ id: string; text: string }>;
   };
+};
+
+export type AnalyticsSummary = {
+  passRate: number;
+  passCount: number;
+  completedCount: number;
+  failedCount: number;
+  inconclusiveCount: number;
+  attachmentsUsedCount: number;
+  attachmentsUsedRate: number;
+  lastCreatedAt: string | null;
+};
+
+export type AnalyticsJudgeDatum = {
+  judgeId: string;
+  judgeName: string;
+  passRate: number;
+  passCount: number;
+  completedCount: number;
+  failedCount: number;
+};
+
+export type AnalyticsQuestionDatum = {
+  questionTemplateId: string;
+  questionText: string;
+  passRate: number;
+  passCount: number;
+  completedCount: number;
+  failedCount: number;
+};
+
+export type AnalyticsVerdictDatum = {
+  verdict: "pass" | "fail" | "inconclusive" | "failed";
+  count: number;
+};
+
+export type AnalyticsTimeSeriesDatum = {
+  bucket: string;
+  label: string;
+  passCount: number;
+  failCount: number;
+  inconclusiveCount: number;
+  failedCount: number;
+  completedCount: number;
+  passRate: number;
+};
+
+export type AnalyticsResponse = {
+  summary: AnalyticsSummary;
+  charts: {
+    passRateByJudge: AnalyticsJudgeDatum[];
+    passRateByQuestion: AnalyticsQuestionDatum[];
+    verdictDistribution: AnalyticsVerdictDatum[];
+    evaluationsOverTime: AnalyticsTimeSeriesDatum[];
+  };
+  availableFilters: {
+    queues: Array<{ id: string; label: string }>;
+    judges: Array<{ id: string; name: string }>;
+    questions: Array<{ id: string; text: string }>;
+  };
+  timeBucket: "hour" | "day";
 };
 
 export type DeleteEvaluationsResponse = {

@@ -1,14 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  AnalyticsResponse,
   DeleteEvaluationsResponse,
   EvaluationRow,
   EvaluationRunSummary,
   ImportedSubmission,
   JudgeRecord,
+  PromptFieldConfig,
+  QuestionJudgeAssignment,
   QueueDetail,
   QueueSummary,
   ResultsResponse,
+  SubmissionAttachment,
 } from "../../shared/types.js";
+import { buildAnalyticsResponse } from "../../shared/analytics.js";
+import { defaultPromptFieldConfig as defaultJudgePromptFieldConfig } from "../../shared/types.js";
 import { calculatePassRate } from "../../shared/results.js";
 
 type QueueRow = {
@@ -28,6 +34,30 @@ type JudgeRow = {
   updated_at: string;
 };
 
+type JudgeAssignmentRow = {
+  question_template_id: string;
+  judge_id: string;
+  prompt_field_config: PromptFieldConfig | null;
+};
+
+type SubmissionAttachmentRow = {
+  id: string;
+  submission_id: string;
+  file_name: string;
+  storage_path: string;
+  mime_type: string;
+  file_size: number | null;
+  created_at: string;
+};
+
+type SubmissionAttachmentInput = {
+  submissionId: string;
+  fileName: string;
+  storagePath: string;
+  mimeType: string;
+  fileSize: number;
+};
+
 function mapJudge(row: JudgeRow): JudgeRecord {
   return {
     id: row.id,
@@ -41,6 +71,18 @@ function mapJudge(row: JudgeRow): JudgeRecord {
   };
 }
 
+function mapAttachment(row: SubmissionAttachmentRow): SubmissionAttachment {
+  return {
+    id: row.id,
+    submissionId: row.submission_id,
+    fileName: row.file_name,
+    storagePath: row.storage_path,
+    mimeType: row.mime_type,
+    fileSize: row.file_size,
+    createdAt: row.created_at,
+  };
+}
+
 function must<T>(value: T | null, message: string): T {
   if (value === null) {
     throw new Error(message);
@@ -49,14 +91,30 @@ function must<T>(value: T | null, message: string): T {
   return value;
 }
 
+type EvaluationFilters = {
+  judgeIds?: string[];
+  questionTemplateIds?: string[];
+  verdicts?: string[];
+  queueId?: string;
+  startAt?: string;
+  endAt?: string;
+};
+
 export class Database {
   constructor(private readonly supabase: SupabaseClient) {}
 
   async importSubmissions(
     submissions: ImportedSubmission[],
     sourceFileName: string,
+    queueOverride?: string,
   ): Promise<{ queueIds: string[]; submissionCount: number }> {
-    const queueIds = [...new Set(submissions.map((submission) => submission.queueId))];
+    const normalizedSubmissions = queueOverride
+      ? submissions.map((submission) => ({
+          ...submission,
+          queueId: queueOverride,
+        }))
+      : submissions;
+    const queueIds = [...new Set(normalizedSubmissions.map((submission) => submission.queueId))];
 
     for (const queueId of queueIds) {
       const { error } = await this.supabase.from("queues").upsert(
@@ -72,7 +130,7 @@ export class Database {
       }
     }
 
-    for (const submission of submissions) {
+    for (const submission of normalizedSubmissions) {
       const { error: submissionError } = await this.supabase.from("submissions").upsert(
         {
           id: submission.id,
@@ -135,7 +193,7 @@ export class Database {
       }
     }
 
-    return { queueIds, submissionCount: submissions.length };
+    return { queueIds, submissionCount: normalizedSubmissions.length };
   }
 
   async listQueues(): Promise<QueueSummary[]> {
@@ -155,22 +213,29 @@ export class Database {
   }
 
   async getQueueDetail(queueId: string): Promise<QueueDetail> {
-    const [queueResult, questionResult, assignmentResult, submissionResult, answerResult] =
+    const [queueResult, questionResult, assignmentResult, submissionResult, answerResult, attachmentResult] =
       await Promise.all([
         this.supabase.from("queues").select("*").eq("id", queueId).single<QueueRow>(),
         this.supabase
           .from("submission_questions")
           .select("question_template_id, question_text, question_type, submissions!inner(queue_id)")
           .eq("submissions.queue_id", queueId),
-        this.supabase.from("judge_assignments").select("question_template_id, judge_id").eq("queue_id", queueId),
+        this.supabase
+          .from("judge_assignments")
+          .select("question_template_id, judge_id, prompt_field_config")
+          .eq("queue_id", queueId),
         this.supabase
           .from("submissions")
-          .select("id, created_at_source, labeling_task_id")
+          .select("id, created_at_source, labeling_task_id, has_attachments")
           .eq("queue_id", queueId)
           .order("created_at_source", { ascending: false }),
         this.supabase
           .from("submission_answers")
           .select("submission_id, question_template_id, answer_payload, submissions!inner(queue_id)")
+          .eq("submissions.queue_id", queueId),
+        this.supabase
+          .from("submission_attachments")
+          .select("id, submission_id, file_name, storage_path, mime_type, file_size, created_at, submissions!inner(queue_id)")
           .eq("submissions.queue_id", queueId),
       ]);
 
@@ -189,6 +254,9 @@ export class Database {
     if (answerResult.error) {
       throw answerResult.error;
     }
+    if (attachmentResult.error) {
+      throw attachmentResult.error;
+    }
 
     const queue = must(
       (await this.listQueues()).find((summary) => summary.id === queueId) ?? null,
@@ -206,11 +274,14 @@ export class Database {
       }
     }
 
-    const assignments: Record<string, string[]> = {};
-    for (const row of assignmentResult.data ?? []) {
+    const assignments: Record<string, QuestionJudgeAssignment[]> = {};
+    for (const row of (assignmentResult.data ?? []) as JudgeAssignmentRow[]) {
       const questionTemplateId = String(row.question_template_id);
       assignments[questionTemplateId] ??= [];
-      assignments[questionTemplateId].push(String(row.judge_id));
+      assignments[questionTemplateId].push({
+        judgeId: String(row.judge_id),
+        promptFieldConfig: { ...defaultJudgePromptFieldConfig, ...(row.prompt_field_config ?? {}) },
+      });
     }
 
     const answersBySubmission = new Map<string, Array<{ questionTemplateId: string; answer: unknown }>>();
@@ -222,6 +293,15 @@ export class Database {
           questionTemplateId: String(row.question_template_id),
           answer: row.answer_payload,
         },
+      ]);
+    }
+
+    const attachmentsBySubmission = new Map<string, SubmissionAttachment[]>();
+    for (const row of attachmentResult.data ?? []) {
+      const submissionId = String(row.submission_id);
+      attachmentsBySubmission.set(submissionId, [
+        ...(attachmentsBySubmission.get(submissionId) ?? []),
+        mapAttachment(row as SubmissionAttachmentRow),
       ]);
     }
 
@@ -237,9 +317,50 @@ export class Database {
         id: String(submission.id),
         createdAtSource: Number(submission.created_at_source),
         labelingTaskId: (submission.labeling_task_id as string | null) ?? null,
+        hasAttachments: Boolean(submission.has_attachments),
+        attachments: attachmentsBySubmission.get(String(submission.id)) ?? [],
         answers: answersBySubmission.get(String(submission.id)) ?? [],
       })),
     };
+  }
+
+  async submissionExists(submissionId: string): Promise<boolean> {
+    const { data, error } = await this.supabase.from("submissions").select("id").eq("id", submissionId).maybeSingle<{ id: string }>();
+    if (error) {
+      throw error;
+    }
+
+    return data !== null;
+  }
+
+  async addSubmissionAttachments(attachments: SubmissionAttachmentInput[]): Promise<{ uploadedCount: number }> {
+    if (attachments.length === 0) {
+      return { uploadedCount: 0 };
+    }
+
+    const rows = attachments.map((attachment) => ({
+      submission_id: attachment.submissionId,
+      file_name: attachment.fileName,
+      storage_path: attachment.storagePath,
+      mime_type: attachment.mimeType,
+      file_size: attachment.fileSize,
+    }));
+
+    const { error: insertError } = await this.supabase.from("submission_attachments").insert(rows);
+    if (insertError) {
+      throw insertError;
+    }
+
+    const submissionIds = [...new Set(attachments.map((attachment) => attachment.submissionId))];
+    const { error: updateError } = await this.supabase
+      .from("submissions")
+      .update({ has_attachments: true })
+      .in("id", submissionIds);
+    if (updateError) {
+      throw updateError;
+    }
+
+    return { uploadedCount: attachments.length };
   }
 
   async listJudges(): Promise<JudgeRecord[]> {
@@ -311,7 +432,7 @@ export class Database {
 
   async replaceAssignments(
     queueId: string,
-    assignments: Array<{ questionTemplateId: string; judgeIds: string[] }>,
+    assignments: Array<{ questionTemplateId: string; assignments: QuestionJudgeAssignment[] }>,
   ): Promise<void> {
     const { error: deleteError } = await this.supabase.from("judge_assignments").delete().eq("queue_id", queueId);
     if (deleteError) {
@@ -319,10 +440,11 @@ export class Database {
     }
 
     const rows = assignments.flatMap((assignment) =>
-      assignment.judgeIds.map((judgeId) => ({
+      assignment.assignments.map((judgeAssignment) => ({
         queue_id: queueId,
         question_template_id: assignment.questionTemplateId,
-        judge_id: judgeId,
+        judge_id: judgeAssignment.judgeId,
+        prompt_field_config: judgeAssignment.promptFieldConfig,
       })),
     );
 
@@ -378,6 +500,7 @@ export class Database {
     assignments: Array<{
       questionTemplateId: string;
       judge: JudgeRecord;
+      promptFieldConfig: PromptFieldConfig;
     }>;
     submissions: Array<{
       submissionId: string;
@@ -386,12 +509,16 @@ export class Database {
       questionText: string;
       questionType: string;
       answer: unknown;
+      attachments: SubmissionAttachment[];
     }>;
   }> {
-    const [queueResult, assignmentResult, judgesResult, questionsResult, answersResult, submissionsResult] =
+    const [queueResult, assignmentResult, judgesResult, questionsResult, answersResult, submissionsResult, attachmentResult] =
       await Promise.all([
         this.supabase.from("queues").select("*").eq("id", queueId).single<QueueRow>(),
-        this.supabase.from("judge_assignments").select("question_template_id, judge_id").eq("queue_id", queueId),
+        this.supabase
+          .from("judge_assignments")
+          .select("question_template_id, judge_id, prompt_field_config")
+          .eq("queue_id", queueId),
         this.supabase.from("judges").select("*").eq("active", true),
         this.supabase
           .from("submission_questions")
@@ -402,6 +529,10 @@ export class Database {
           .select("submission_id, question_template_id, answer_payload, submissions!inner(queue_id)")
           .eq("submissions.queue_id", queueId),
         this.supabase.from("submissions").select("id, labeling_task_id").eq("queue_id", queueId),
+        this.supabase
+          .from("submission_attachments")
+          .select("id, submission_id, file_name, storage_path, mime_type, file_size, created_at, submissions!inner(queue_id)")
+          .eq("submissions.queue_id", queueId),
       ]);
 
     if (queueResult.error) throw queueResult.error;
@@ -410,14 +541,19 @@ export class Database {
     if (questionsResult.error) throw questionsResult.error;
     if (answersResult.error) throw answersResult.error;
     if (submissionsResult.error) throw submissionsResult.error;
+    if (attachmentResult.error) throw attachmentResult.error;
 
     const judgesById = new Map((judgesResult.data ?? []).map((row) => [String(row.id), mapJudge(row as JudgeRow)]));
-    const assignments = (assignmentResult.data ?? [])
+    const assignments = ((assignmentResult.data ?? []) as JudgeAssignmentRow[])
       .map((row) => ({
         questionTemplateId: String(row.question_template_id),
         judge: judgesById.get(String(row.judge_id)),
+        promptFieldConfig: { ...defaultJudgePromptFieldConfig, ...(row.prompt_field_config ?? {}) },
       }))
-      .filter((row): row is { questionTemplateId: string; judge: JudgeRecord } => row.judge !== undefined);
+      .filter(
+        (row): row is { questionTemplateId: string; judge: JudgeRecord; promptFieldConfig: PromptFieldConfig } =>
+          row.judge !== undefined,
+      );
 
     const questionMap = new Map<string, { questionText: string; questionType: string }>();
     for (const row of questionsResult.data ?? []) {
@@ -430,6 +566,14 @@ export class Database {
     const labelingTaskMap = new Map(
       (submissionsResult.data ?? []).map((row) => [String(row.id), (row.labeling_task_id as string | null) ?? null]),
     );
+    const attachmentsBySubmission = new Map<string, SubmissionAttachment[]>();
+    for (const row of attachmentResult.data ?? []) {
+      const submissionId = String(row.submission_id);
+      attachmentsBySubmission.set(submissionId, [
+        ...(attachmentsBySubmission.get(submissionId) ?? []),
+        mapAttachment(row as SubmissionAttachmentRow),
+      ]);
+    }
 
     const workItems = (answersResult.data ?? []).map((row) => {
       const key = `${row.submission_id}:${row.question_template_id}`;
@@ -441,6 +585,7 @@ export class Database {
         questionText: question.questionText,
         questionType: question.questionType,
         answer: row.answer_payload,
+        attachments: attachmentsBySubmission.get(String(row.submission_id)) ?? [],
       };
     });
 
@@ -464,6 +609,7 @@ export class Database {
     rawResponse: unknown;
     status: "completed" | "failed";
     errorMessage: string | null;
+    attachmentsUsed: boolean;
   }): Promise<void> {
     const { error } = await this.supabase.from("evaluations").insert({
       run_id: input.runId,
@@ -478,6 +624,7 @@ export class Database {
       raw_response: input.rawResponse,
       status: input.status,
       error_message: input.errorMessage,
+      attachments_used: input.attachmentsUsed,
     });
 
     if (error) {
@@ -491,70 +638,27 @@ export class Database {
     verdicts?: string[];
     queueId?: string;
   }): Promise<ResultsResponse> {
-    let query = this.supabase
-      .from("evaluations")
-      .select(
-        "id, created_at, submission_id, queue_id, question_template_id, judge_id, verdict, reasoning, status, error_message, judges(name)",
-      )
-      .order("created_at", { ascending: false });
-
-    if (filters.queueId) {
-      query = query.eq("queue_id", filters.queueId);
-    }
-    if (filters.judgeIds && filters.judgeIds.length > 0) {
-      query = query.in("judge_id", filters.judgeIds);
-    }
-    if (filters.questionTemplateIds && filters.questionTemplateIds.length > 0) {
-      query = query.in("question_template_id", filters.questionTemplateIds);
-    }
-    if (filters.verdicts && filters.verdicts.length > 0) {
-      query = query.in("verdict", filters.verdicts);
-    }
-
-    const [resultRows, judgeRows, questionRows] = await Promise.all([
-      query,
-      this.supabase.from("judges").select("id, name").order("name"),
-      this.supabase.from("submission_questions").select("question_template_id, question_text"),
-    ]);
-
-    if (resultRows.error) throw resultRows.error;
-    if (judgeRows.error) throw judgeRows.error;
-    if (questionRows.error) throw questionRows.error;
-
-    const questionTextMap = new Map<string, string>();
-    for (const row of questionRows.data ?? []) {
-      const key = String(row.question_template_id);
-      if (!questionTextMap.has(key)) {
-        questionTextMap.set(key, String(row.question_text));
-      }
-    }
-
-    const rows: EvaluationRow[] = (resultRows.data ?? []).map((row) => ({
-      id: String(row.id),
-      createdAt: String(row.created_at),
-      submissionId: String(row.submission_id),
-      queueId: String(row.queue_id),
-      questionTemplateId: String(row.question_template_id),
-      questionText: questionTextMap.get(String(row.question_template_id)) ?? String(row.question_template_id),
-      judgeId: String(row.judge_id),
-      judgeName: String((row.judges as { name?: string } | null)?.name ?? "Unknown Judge"),
-      verdict: row.verdict as "pass" | "fail" | "inconclusive",
-      reasoning: String(row.reasoning ?? ""),
-      status: row.status as "completed" | "failed",
-      errorMessage: (row.error_message as string | null) ?? null,
-    }));
+    const { rows, availableFilters } = await this.getEvaluationDataset(filters);
 
     return {
       rows,
       aggregate: calculatePassRate(rows),
       availableFilters: {
-        judges: (judgeRows.data ?? []).map((row) => ({
-          id: String(row.id),
-          name: String(row.name),
-        })),
-        questions: [...questionTextMap.entries()].map(([id, text]) => ({ id, text })),
+        judges: availableFilters.judges,
+        questions: availableFilters.questions,
       },
     };
+  }
+
+  async getAnalytics(filters: EvaluationFilters): Promise<AnalyticsResponse> {
+    const timeBucket = this.chooseTimeBucket(filters.startAt, filters.endAt);
+    const { rows, availableFilters } = await this.getEvaluationDataset(filters);
+
+    return buildAnalyticsResponse({
+      rows,
+      availableFilters,
+      timeBucket,
+    });
   }
 
   async deleteEvaluationById(evaluationId: string): Promise<DeleteEvaluationsResponse> {
@@ -596,6 +700,99 @@ export class Database {
 
     return {
       deletedCount: data?.length ?? 0,
+    };
+  }
+
+  private chooseTimeBucket(startAt?: string, endAt?: string): "hour" | "day" {
+    if (!startAt || !endAt) {
+      return "day";
+    }
+
+    const durationMs = new Date(endAt).getTime() - new Date(startAt).getTime();
+    return durationMs <= 1000 * 60 * 60 * 48 ? "hour" : "day";
+  }
+
+  private async getEvaluationDataset(filters: EvaluationFilters): Promise<{
+    rows: EvaluationRow[];
+    availableFilters: AnalyticsResponse["availableFilters"];
+  }> {
+    let query = this.supabase
+      .from("evaluations")
+      .select(
+        "id, created_at, submission_id, queue_id, question_template_id, judge_id, verdict, reasoning, status, error_message, attachments_used, judges(name)",
+      )
+      .order("created_at", { ascending: false });
+
+    if (filters.queueId) {
+      query = query.eq("queue_id", filters.queueId);
+    }
+    if (filters.judgeIds && filters.judgeIds.length > 0) {
+      query = query.in("judge_id", filters.judgeIds);
+    }
+    if (filters.questionTemplateIds && filters.questionTemplateIds.length > 0) {
+      query = query.in("question_template_id", filters.questionTemplateIds);
+    }
+    if (filters.verdicts && filters.verdicts.length > 0) {
+      query = query.in("verdict", filters.verdicts);
+    }
+    if (filters.startAt) {
+      query = query.gte("created_at", filters.startAt);
+    }
+    if (filters.endAt) {
+      query = query.lte("created_at", filters.endAt);
+    }
+
+    const [resultRows, judgeRows, questionRows, queueRows] = await Promise.all([
+      query,
+      this.supabase.from("judges").select("id, name").order("name"),
+      this.supabase.from("submission_questions").select("question_template_id, question_text"),
+      this.supabase.from("queues").select("id").order("id"),
+    ]);
+
+    if (resultRows.error) throw resultRows.error;
+    if (judgeRows.error) throw judgeRows.error;
+    if (questionRows.error) throw questionRows.error;
+    if (queueRows.error) throw queueRows.error;
+
+    const questionTextMap = new Map<string, string>();
+    for (const row of questionRows.data ?? []) {
+      const key = String(row.question_template_id);
+      if (!questionTextMap.has(key)) {
+        questionTextMap.set(key, String(row.question_text));
+      }
+    }
+
+    const rows: EvaluationRow[] = (resultRows.data ?? []).map((row) => ({
+      id: String(row.id),
+      createdAt: String(row.created_at),
+      submissionId: String(row.submission_id),
+      queueId: String(row.queue_id),
+      questionTemplateId: String(row.question_template_id),
+      questionText: questionTextMap.get(String(row.question_template_id)) ?? String(row.question_template_id),
+      judgeId: String(row.judge_id),
+      judgeName: String((row.judges as { name?: string } | null)?.name ?? "Unknown Judge"),
+      verdict: row.verdict as "pass" | "fail" | "inconclusive",
+      reasoning: String(row.reasoning ?? ""),
+      status: row.status as "completed" | "failed",
+      errorMessage: (row.error_message as string | null) ?? null,
+      attachmentsUsed: Boolean(row.attachments_used),
+    }));
+
+    return {
+      rows,
+      availableFilters: {
+        queues: (queueRows.data ?? []).map((row) => ({
+          id: String(row.id),
+          label: String(row.id),
+        })),
+        judges: (judgeRows.data ?? []).map((row) => ({
+          id: String(row.id),
+          name: String(row.name),
+        })),
+        questions: [...questionTextMap.entries()]
+          .map(([id, text]) => ({ id, text }))
+          .sort((left, right) => left.text.localeCompare(right.text)),
+      },
     };
   }
 }

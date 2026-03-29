@@ -16,6 +16,7 @@ const rows: EvaluationRow[] = [
     reasoning: "Looks correct.",
     status: "completed",
     errorMessage: null,
+    attachmentsUsed: false,
   },
   {
     id: "2",
@@ -30,6 +31,7 @@ const rows: EvaluationRow[] = [
     reasoning: "Incorrect.",
     status: "completed",
     errorMessage: null,
+    attachmentsUsed: false,
   },
   {
     id: "3",
@@ -44,6 +46,7 @@ const rows: EvaluationRow[] = [
     reasoning: "Timed out.",
     status: "failed",
     errorMessage: "timeout",
+    attachmentsUsed: false,
   },
 ];
 
