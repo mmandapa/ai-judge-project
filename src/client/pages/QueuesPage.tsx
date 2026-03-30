@@ -320,15 +320,6 @@ export function QueuesPage() {
                   </label>
                 </div>
 
-                <div className="preview-block">
-                  <strong>Submission preview</strong>
-                  <div className="stack preview-content-list">
-                    {submissionOptions.map((submission) => (
-                      <div key={submission.id}>{submission.label}</div>
-                    ))}
-                  </div>
-                </div>
-
                 {entry.attachments.length > 0 ? (
                   <div className="stack">
                     <strong>Attachment mapping</strong>

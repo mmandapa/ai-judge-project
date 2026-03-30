@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { ImportedSubmission, JudgeRecord, PromptFieldConfig, QueueDetail, QuestionJudgeAssignment } from "../../shared/types";
-import { buildAnswerPreview, coerceImportedSubmissionsToQueue, parseImportedSubmissions } from "../../shared/parser";
+import { coerceImportedSubmissionsToQueue, parseImportedSubmissions } from "../../shared/parser";
 import { defaultPromptFieldConfig } from "../../shared/types";
 import { Card } from "../components/Card";
 import { MultiSelectChips } from "../components/MultiSelectChips";
@@ -25,8 +25,6 @@ export function QueueDetailPage() {
   const [loading, setLoading] = useState(true);
   const [savingAssignments, setSavingAssignments] = useState(false);
   const [running, setRunning] = useState(false);
-  const [uploadingSubmissionId, setUploadingSubmissionId] = useState<string | null>(null);
-  const [attachmentMessages, setAttachmentMessages] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [runSummary, setRunSummary] = useState<string | null>(null);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
@@ -273,31 +271,6 @@ export function QueueDetailPage() {
           : assignment,
       ),
     }));
-  }
-
-  async function handleAttachmentChange(submissionId: string, event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-
-    if (files.length === 0) {
-      return;
-    }
-
-    try {
-      setUploadingSubmissionId(submissionId);
-      setError(null);
-      setAttachmentMessages((current) => ({ ...current, [submissionId]: "" }));
-      const result = await api.uploadSubmissionAttachments(submissionId, files);
-      setAttachmentMessages((current) => ({
-        ...current,
-        [submissionId]: `Uploaded ${result.uploadedCount} file${result.uploadedCount === 1 ? "" : "s"}.`,
-      }));
-      await loadPage();
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Failed to upload attachments");
-    } finally {
-      setUploadingSubmissionId(null);
-    }
   }
 
   if (loading) {
@@ -595,71 +568,6 @@ export function QueueDetailPage() {
               />
             </label>
           ))}
-        </div>
-      </Card>
-
-      <Card title="4. Submission preview">
-        <p className="table-subtext">
-          Each row below is a submission in queue <strong>{detail.queue.id}</strong>. Upload screenshots or PDFs on the
-          matching row if a judge should receive extra visual context.
-        </p>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Submission metadata</th>
-                <th>Created</th>
-                <th>Attachments</th>
-                <th>Answers</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.submissions.map((submission) => (
-                <tr key={submission.id}>
-                  <td>
-                    <strong>Submission {submission.id}</strong>
-                    <div className="table-subtext">Queue: {detail.queue.id}</div>
-                    <div className="table-subtext">
-                      Task ID: {submission.labelingTaskId ?? "No upstream task ID"}
-                    </div>
-                  </td>
-                  <td>{new Date(submission.createdAtSource).toLocaleString()}</td>
-                  <td>
-                    <div className="stack">
-                      <label className="button">
-                        {uploadingSubmissionId === submission.id ? "Uploading..." : "Upload files"}
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          multiple
-                          hidden
-                          disabled={uploadingSubmissionId !== null}
-                          onChange={(event) => void handleAttachmentChange(submission.id, event)}
-                        />
-                      </label>
-                      {submission.attachments.length === 0 ? <span className="table-subtext">No attachments</span> : null}
-                      {submission.attachments.map((attachment) => (
-                        <div key={attachment.id}>
-                          <strong>{attachment.fileName}</strong>
-                          <div className="table-subtext">{attachment.mimeType}</div>
-                        </div>
-                      ))}
-                      {attachmentMessages[submission.id] ? <span className="success">{attachmentMessages[submission.id]}</span> : null}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="answer-list">
-                      {submission.answers.map((answer) => (
-                        <div key={answer.questionTemplateId}>
-                          <strong>{answer.questionTemplateId}</strong>: {buildAnswerPreview(answer.answer)}
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </Card>
     </div>
