@@ -3,7 +3,7 @@ import multer from "multer";
 import path from "node:path";
 import { z } from "zod";
 import { coerceImportedSubmissionsToQueue, parseImportedSubmissions } from "../../shared/parser.js";
-import { defaultPromptFieldConfig, promptFieldConfigSchema } from "../../shared/types.js";
+import { defaultPromptFieldConfig, importTargetModeSchema, promptFieldConfigSchema } from "../../shared/types.js";
 import { Database } from "../lib/database.js";
 import { attachmentBucket, attachmentLimits, normalizeAttachmentStorageError } from "../lib/attachments.js";
 import { runEvaluationsForQueue } from "../lib/evaluationRunner.js";
@@ -82,6 +82,17 @@ const runPayloadSchema = z.object({
   questionTemplateIds: z.array(z.string().min(1)).optional(),
 });
 
+const batchImportPayloadSchema = z.object({
+  entries: z.array(
+    z.object({
+      sourceFileName: z.string().min(1),
+      targetMode: importTargetModeSchema,
+      targetQueueId: z.string().min(1),
+      submissions: z.array(z.any()),
+    }),
+  ),
+});
+
 router.get("/health", (_request, response) => {
   response.json({ ok: true });
 });
@@ -97,6 +108,36 @@ router.post("/import-submissions", upload.single("file"), async (request, respon
     const submissions = parseImportedSubmissions(file.buffer.toString("utf-8"));
     const result = await database.importSubmissions(submissions, file.originalname);
     response.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/import-batch", async (request, response, next) => {
+  try {
+    const payload = batchImportPayloadSchema.parse(request.body);
+    if (payload.entries.length === 0) {
+      response.status(400).json({ error: "Add at least one import entry before importing." });
+      return;
+    }
+
+    const queueIds = new Set<string>();
+    let submissionCount = 0;
+
+    for (const entry of payload.entries) {
+      const submissions = entry.targetMode === "existing"
+        ? coerceImportedSubmissionsToQueue(entry.submissions, entry.targetQueueId)
+        : coerceImportedSubmissionsToQueue(entry.submissions, entry.targetQueueId);
+      const result = await database.importSubmissions(submissions, entry.sourceFileName, entry.targetQueueId);
+      result.queueIds.forEach((queueId) => queueIds.add(queueId));
+      submissionCount += result.submissionCount;
+    }
+
+    response.json({
+      queueIds: [...queueIds],
+      submissionCount,
+      entryCount: payload.entries.length,
+    });
   } catch (error) {
     next(error);
   }

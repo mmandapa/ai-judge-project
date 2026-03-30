@@ -377,6 +377,29 @@ td {
   border-bottom: 0;
 }
 
+.staged-entry-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 22px;
+  border: 1px solid rgba(24, 34, 47, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.staged-entry-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.staged-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
 .run-question-row {
   display: flex;
   justify-content: space-between;
@@ -545,7 +568,8 @@ td {
   .run-question-row,
   .analytics-hero,
   .analytics-section-header,
-  .modal-header {
+  .modal-header,
+  .staged-entry-header {
     flex-direction: column;
   }
 

@@ -36,11 +36,11 @@ If attachment upload fails with a row-level security error, the missing piece is
 
 ## Core flow
 
-1. Import a challenge JSON file on the Queues page.
-2. During import, optionally map screenshots or PDFs to the submissions they belong to.
-3. After import, land in queue setup for that queue.
-4. In queue setup, append more submissions to the same queue if needed, plus optional attachments for those new submissions.
-5. Assign one or more judges to each question template and choose which fields each judge assignment should send to the LLM.
+1. Stage one or more challenge JSON files on the Queues page.
+2. For each staged entry, choose whether it should create a new queue or merge into an existing queue.
+3. Optionally map screenshots or PDFs to the submissions inside each staged entry.
+4. Import the whole batch at once, then land in queue setup for one of the affected queues.
+5. In queue setup, assign one or more judges to each question template and choose which fields each judge assignment should send to the LLM.
 6. Choose which questions to run for the current run, then start the queue.
 7. Review pass/fail/inconclusive results on the Results page.
 8. Open Analytics for animated pass-rate and trend dashboards by queue, judge, question, verdict, and date range.
@@ -60,6 +60,7 @@ Judges themselves stay reusable: name, rubric, provider, model, and active state
 ## API summary
 
 - `POST /api/import-submissions`
+- `POST /api/import-batch`
 - `GET /api/queues`
 - `GET /api/queues/:queueId`
 - `POST /api/queues/:queueId/import-submissions`

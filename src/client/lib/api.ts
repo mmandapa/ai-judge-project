@@ -1,5 +1,7 @@
 import type {
   AnalyticsResponse,
+  BatchImportEntry,
+  BatchImportResult,
   DeleteEvaluationsResponse,
   EvaluationRunSummary,
   ImportedSubmission,
@@ -136,6 +138,11 @@ export const api = {
 
     return (await response.json()) as { queueIds: string[]; submissionCount: number };
   },
+  importBatch: (entries: BatchImportEntry[]) =>
+    request<BatchImportResult>("/api/import-batch", {
+      method: "POST",
+      body: JSON.stringify({ entries }),
+    }),
   appendSubmissionsToQueue: async (queueId: string, file: File) => {
     const body = new FormData();
     body.append("file", file);

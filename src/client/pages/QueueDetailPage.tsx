@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { ImportedSubmission, JudgeRecord, PromptFieldConfig, QueueDetail, QuestionJudgeAssignment } from "../../shared/types";
 import { buildAnswerPreview, coerceImportedSubmissionsToQueue, parseImportedSubmissions } from "../../shared/parser";
 import { defaultPromptFieldConfig } from "../../shared/types";
@@ -18,6 +18,7 @@ const promptFieldLabels: Array<{ key: keyof PromptFieldConfig; label: string; de
 
 export function QueueDetailPage() {
   const { queueId = "" } = useParams();
+  const [searchParams] = useSearchParams();
   const [detail, setDetail] = useState<QueueDetail | null>(null);
   const [judges, setJudges] = useState<JudgeRecord[]>([]);
   const [draftAssignments, setDraftAssignments] = useState<Record<string, QuestionJudgeAssignment[]>>({});
@@ -89,6 +90,15 @@ export function QueueDetailPage() {
     }
     return map;
   }, [detail?.submissions]);
+
+  const affectedQueues = useMemo(
+    () =>
+      (searchParams.get("affectedQueues") ?? "")
+        .split(",")
+        .filter(Boolean)
+        .filter((id) => id !== queueId),
+    [queueId, searchParams],
+  );
 
   async function saveAssignments() {
     if (!detail) {
@@ -337,6 +347,21 @@ export function QueueDetailPage() {
           </Link>
           <Link to="/results">View results</Link>
         </div>
+        {affectedQueues.length > 0 ? (
+          <div className="preview-block">
+            <strong>Other imported queues</strong>
+            <p className="table-subtext">
+              This import batch also updated other queues. Finish setup there after this one.
+            </p>
+            <div className="actions">
+              {affectedQueues.map((affectedQueueId) => (
+                <Link key={affectedQueueId} className="button" to={`/queues/${affectedQueueId}`}>
+                  {affectedQueueId}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {runSummary ? <p className="success">{runSummary}</p> : null}
         {error ? <p className="error">{error}</p> : null}
       </Card>

@@ -26,6 +26,22 @@ export const importedSubmissionListSchema = z.array(importedSubmissionSchema);
 export type ImportedSubmission = z.infer<typeof importedSubmissionSchema>;
 export type ImportedQuestion = z.infer<typeof importedQuestionSchema>;
 
+export const importTargetModeSchema = z.enum(["new", "existing"]);
+export type ImportTargetMode = z.infer<typeof importTargetModeSchema>;
+
+export type BatchImportEntry = {
+  sourceFileName: string;
+  targetMode: ImportTargetMode;
+  targetQueueId: string;
+  submissions: ImportedSubmission[];
+};
+
+export type BatchImportResult = {
+  queueIds: string[];
+  submissionCount: number;
+  entryCount: number;
+};
+
 export const promptFieldConfigSchema = z.object({
   includeQuestionText: z.boolean(),
   includeQuestionType: z.boolean(),
