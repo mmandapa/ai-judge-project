@@ -90,4 +90,4 @@ Judges themselves stay reusable: name, rubric, provider, model, and active state
 
 ## Time Spent
 
-- Approx. 6-8 hours depending on Supabase environment setup and demo prep.
+- Approx. 4 hours
