@@ -1,20 +1,25 @@
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
-import type { EvaluationOutput, JudgeRecord } from "../../shared/types.js";
+import { buildPromptPayload } from "../../shared/prompt.js";
+import type { EvaluationOutput, JudgeRecord, PromptFieldConfig, SubmissionAttachment } from "../../shared/types.js";
 import { evaluationOutputSchema } from "../../shared/types.js";
+import { resolveAttachmentContentParts } from "../lib/attachments.js";
 import { getEnv } from "../lib/env.js";
+import { getSupabaseClient } from "../lib/supabase.js";
 
 export type EvaluationProviderInput = {
   judge: JudgeRecord;
+  promptFieldConfig: PromptFieldConfig;
   questionText: string;
   questionType: string;
   answer: unknown;
   submissionId: string;
   labelingTaskId: string | null;
+  attachments: SubmissionAttachment[];
 };
 
 export interface EvaluationProvider {
-  evaluate(input: EvaluationProviderInput): Promise<EvaluationOutput & { rawResponse: unknown }>;
+  evaluate(input: EvaluationProviderInput): Promise<EvaluationOutput & { rawResponse: unknown; attachmentsUsed: boolean }>;
 }
 
 export class OpenAIEvaluationProvider implements EvaluationProvider {
@@ -30,7 +35,21 @@ export class OpenAIEvaluationProvider implements EvaluationProvider {
     this.defaultModel = env.OPENAI_MODEL;
   }
 
-  async evaluate(input: EvaluationProviderInput): Promise<EvaluationOutput & { rawResponse: unknown }> {
+  async evaluate(input: EvaluationProviderInput): Promise<EvaluationOutput & { rawResponse: unknown; attachmentsUsed: boolean }> {
+    const prompt = buildPromptPayload({
+      rubricPrompt: input.judge.rubricPrompt,
+      promptFieldConfig: input.promptFieldConfig,
+      submissionId: input.submissionId,
+      labelingTaskId: input.labelingTaskId,
+      questionType: input.questionType,
+      questionText: input.questionText,
+      answer: input.answer,
+      attachments: input.attachments,
+    });
+    const attachmentParts = prompt.promptFieldConfig.includeAttachments
+      ? await resolveAttachmentContentParts(getSupabaseClient(), input.attachments)
+      : [];
+
     const response = await this.client.responses.parse({
       model: input.judge.model || this.defaultModel,
       input: [
@@ -39,13 +58,7 @@ export class OpenAIEvaluationProvider implements EvaluationProvider {
           content: [
             {
               type: "input_text",
-              text: [
-                "You are an AI judge for an annotation platform.",
-                "Review the user's answer against the rubric.",
-                "Return one verdict: pass, fail, or inconclusive.",
-                "Reasoning must be short and concrete.",
-                input.judge.rubricPrompt,
-              ].join("\n"),
+              text: prompt.system,
             },
           ],
         },
@@ -54,18 +67,9 @@ export class OpenAIEvaluationProvider implements EvaluationProvider {
           content: [
             {
               type: "input_text",
-              text: JSON.stringify(
-                {
-                  submissionId: input.submissionId,
-                  labelingTaskId: input.labelingTaskId,
-                  questionType: input.questionType,
-                  questionText: input.questionText,
-                  answer: input.answer,
-                },
-                null,
-                2,
-              ),
+              text: prompt.user,
             },
+            ...attachmentParts,
           ],
         },
       ],
@@ -81,6 +85,7 @@ export class OpenAIEvaluationProvider implements EvaluationProvider {
     return {
       ...response.output_parsed,
       rawResponse: response,
+      attachmentsUsed: attachmentParts.length > 0,
     };
   }
 }

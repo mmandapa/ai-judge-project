@@ -9,8 +9,10 @@ type RunDependencies = {
 export async function runEvaluationsForQueue(
   queueId: string,
   { database }: RunDependencies,
+  options?: { questionTemplateIds?: string[] },
 ): Promise<EvaluationRunSummary> {
   const context = await database.getRunContext(queueId);
+  const selectedQuestionIds = new Set(options?.questionTemplateIds?.filter(Boolean) ?? []);
 
   if (context.assignments.length === 0) {
     throw new Error("No judge assignments are saved for this queue.");
@@ -18,15 +20,21 @@ export async function runEvaluationsForQueue(
 
   const workItems = context.submissions.flatMap((submission) =>
     context.assignments
+      .filter((assignment) => selectedQuestionIds.size === 0 || selectedQuestionIds.has(assignment.questionTemplateId))
       .filter((assignment) => assignment.questionTemplateId === submission.questionTemplateId)
       .map((assignment) => ({
         ...submission,
         judge: assignment.judge,
+        promptFieldConfig: assignment.promptFieldConfig,
       })),
   );
 
   if (workItems.length === 0) {
-    throw new Error("No evaluation work items were generated for this queue.");
+    throw new Error(
+      selectedQuestionIds.size > 0
+        ? "No evaluation work items were generated for the selected questions."
+        : "No evaluation work items were generated for this queue.",
+    );
   }
 
   const runId = await database.createRun(queueId, workItems.length);
@@ -43,11 +51,13 @@ export async function runEvaluationsForQueue(
         try {
           const evaluation = await provider.evaluate({
             judge: item.judge,
+            promptFieldConfig: item.promptFieldConfig,
             questionText: item.questionText,
             questionType: item.questionType,
             answer: item.answer,
             submissionId: item.submissionId,
             labelingTaskId: item.labelingTaskId,
+            attachments: item.attachments,
           });
 
           await database.insertEvaluation({
@@ -63,6 +73,7 @@ export async function runEvaluationsForQueue(
             rawResponse: evaluation.rawResponse,
             status: "completed",
             errorMessage: null,
+            attachmentsUsed: evaluation.attachmentsUsed,
           });
           completedCount += 1;
         } catch (error) {
@@ -80,6 +91,7 @@ export async function runEvaluationsForQueue(
             rawResponse: null,
             status: "failed",
             errorMessage,
+            attachmentsUsed: false,
           });
           failedCount += 1;
         }

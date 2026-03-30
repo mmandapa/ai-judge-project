@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import type { JudgeRecord } from "../../shared/types";
 import { Card } from "../components/Card";
 import { api } from "../lib/api";
@@ -21,11 +22,13 @@ const emptyForm: JudgeFormState = {
 };
 
 export function JudgesPage() {
+  const [searchParams] = useSearchParams();
   const [judges, setJudges] = useState<JudgeRecord[]>([]);
   const [form, setForm] = useState<JudgeFormState>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const returnTo = searchParams.get("returnTo");
 
   async function loadJudges() {
     try {
@@ -67,6 +70,13 @@ export function JudgesPage() {
   return (
     <div className="grid-two">
       <Card title={form.id ? "Edit judge" : "New judge"}>
+        {returnTo ? (
+          <div className="actions">
+            <Link className="button" to={returnTo}>
+              Back to queue setup
+            </Link>
+          </div>
+        ) : null}
         <form className="stack" onSubmit={handleSubmit}>
           <label className="field">
             <span>Name</span>
@@ -116,6 +126,9 @@ export function JudgesPage() {
       </Card>
 
       <Card title="Saved judges">
+        <p className="table-subtext">
+          Judges are reusable templates. Queue-specific prompt field selection now happens during queue setup.
+        </p>
         {loading ? <p>Loading judges…</p> : null}
         {!loading && judges.length === 0 ? <p className="muted">Create your first judge to start assigning reviews.</p> : null}
         <div className="stack">

@@ -8,6 +8,16 @@ export function parseImportedSubmissions(raw: string): ImportedSubmission[] {
   return importedSubmissionListSchema.parse(parsed);
 }
 
+export function coerceImportedSubmissionsToQueue(
+  submissions: ImportedSubmission[],
+  queueId: string,
+): ImportedSubmission[] {
+  return submissions.map((submission) => ({
+    ...submission,
+    queueId,
+  }));
+}
+
 export function buildAnswerPreview(answer: unknown): string {
   if (typeof answer === "string") {
     return answer;
