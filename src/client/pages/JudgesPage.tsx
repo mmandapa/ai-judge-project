@@ -27,6 +27,7 @@ export function JudgesPage() {
   const [form, setForm] = useState<JudgeFormState>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const returnTo = searchParams.get("returnTo");
 
@@ -64,6 +65,31 @@ export function JudgesPage() {
       setError(saveError instanceof Error ? saveError.message : "Failed to save judge");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteJudge() {
+    if (!form.id) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete judge "${form.name}"? This will also remove its queue assignments.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      setError(null);
+      await api.deleteJudge(form.id);
+      setForm(emptyForm);
+      await loadJudges();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete judge");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -118,6 +144,11 @@ export function JudgesPage() {
             {form.id ? (
               <button type="button" className="button" onClick={() => setForm(emptyForm)}>
                 Reset
+              </button>
+            ) : null}
+            {form.id ? (
+              <button type="button" className="button button-danger" onClick={() => void handleDeleteJudge()} disabled={deleting}>
+                {deleting ? "Deleting..." : "Delete judge"}
               </button>
             ) : null}
           </div>

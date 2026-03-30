@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   AnalyticsResponse,
+  DeleteJudgeResponse,
   DeleteEvaluationsResponse,
   EvaluationRow,
   EvaluationRunSummary,
@@ -428,6 +429,30 @@ export class Database {
     }
 
     return mapJudge(data);
+  }
+
+  async deleteJudge(judgeId: string): Promise<DeleteJudgeResponse> {
+    const { error: assignmentDeleteError } = await this.supabase
+      .from("judge_assignments")
+      .delete()
+      .eq("judge_id", judgeId);
+    if (assignmentDeleteError) {
+      throw assignmentDeleteError;
+    }
+
+    const { data, error } = await this.supabase
+      .from("judges")
+      .delete()
+      .eq("id", judgeId)
+      .select("id");
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      deletedCount: data?.length ?? 0,
+    };
   }
 
   async replaceAssignments(

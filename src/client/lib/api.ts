@@ -2,6 +2,7 @@ import type {
   AnalyticsResponse,
   BatchImportEntry,
   BatchImportResult,
+  DeleteJudgeResponse,
   DeleteEvaluationsResponse,
   EvaluationRunSummary,
   ImportedSubmission,
@@ -53,6 +54,10 @@ export const api = {
     request<JudgeRecord>(`/api/judges/${judgeId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
+    }),
+  deleteJudge: (judgeId: string) =>
+    request<DeleteJudgeResponse>(`/api/judges/${judgeId}`, {
+      method: "DELETE",
     }),
   replaceAssignments: (
     queueId: string,

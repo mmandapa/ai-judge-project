@@ -289,6 +289,14 @@ router.patch("/judges/:judgeId", async (request, response, next) => {
   }
 });
 
+router.delete("/judges/:judgeId", async (request, response, next) => {
+  try {
+    response.json(await database.deleteJudge(request.params.judgeId));
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/results", async (request, response, next) => {
   try {
     const judgeIds = request.query.judgeIds

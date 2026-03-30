@@ -222,6 +222,10 @@ export type DeleteEvaluationsResponse = {
   deletedCount: number;
 };
 
+export type DeleteJudgeResponse = {
+  deletedCount: number;
+};
+
 export type EvaluationRunSummary = {
   runId: string;
   status: "completed" | "completed_with_failures" | "failed";
