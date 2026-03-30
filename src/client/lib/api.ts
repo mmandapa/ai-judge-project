@@ -1,3 +1,6 @@
+/**
+ * Client-side API wrapper used by the React pages.
+ */
 import type {
   AnalyticsResponse,
   BatchImportEntry,
@@ -17,6 +20,9 @@ import type {
 import { buildPromptPreview } from "../../shared/prompt";
 import { defaultPromptFieldConfig } from "../../shared/types";
 
+/**
+ * Issues a request to the API server and normalizes JSON/error handling.
+ */
 async function request<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
     headers: {
@@ -38,6 +44,9 @@ async function request<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+/**
+ * Centralized API surface for the UI.
+ */
 export const api = {
   listQueues: () => request<QueueSummary[]>("/api/queues"),
   getQueue: (queueId: string) => request<QueueDetail>(`/api/queues/${queueId}`),
@@ -231,10 +240,16 @@ export type PendingSubmissionAttachment = {
   submissionId: string;
 };
 
+/**
+ * Builds a stable client-side id for a pending attachment row.
+ */
 export function buildAttachmentId(file: File, index: number) {
   return `${file.name}-${file.size}-${file.lastModified}-${index}`;
 }
 
+/**
+ * Builds a readable label for submission selection controls.
+ */
 export function buildSubmissionOptionLabel(submission: ImportedSubmission) {
   return `${submission.id}${submission.labelingTaskId ? ` • Task ${submission.labelingTaskId}` : ""}${submission.queueId ? ` • Queue ${submission.queueId}` : ""}`;
 }

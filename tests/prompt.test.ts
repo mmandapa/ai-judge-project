@@ -1,3 +1,6 @@
+/**
+ * Regression coverage for prompt-shaping behavior.
+ */
 import { describe, expect, it } from "vitest";
 import { buildPromptPayload } from "../src/shared/prompt";
 

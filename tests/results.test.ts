@@ -1,3 +1,6 @@
+/**
+ * Regression coverage for results pass-rate aggregation.
+ */
 import { describe, expect, it } from "vitest";
 import { calculatePassRate } from "../src/shared/results";
 import type { EvaluationRow } from "../src/shared/types";

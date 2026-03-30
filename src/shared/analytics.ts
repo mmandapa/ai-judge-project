@@ -1,3 +1,6 @@
+/**
+ * Shared analytics aggregation helpers.
+ */
 import type {
   AnalyticsJudgeDatum,
   AnalyticsQuestionDatum,
@@ -14,10 +17,17 @@ type AnalyticsInput = {
   timeBucket?: "hour" | "day";
 };
 
+/**
+ * Returns only completed evaluations for metrics that should ignore failed
+ * provider calls.
+ */
 function completedRows(rows: EvaluationRow[]) {
   return rows.filter((row) => row.status === "completed");
 }
 
+/**
+ * Builds the KPI summary values shown at the top of the dashboard.
+ */
 function buildSummary(rows: EvaluationRow[]): AnalyticsSummary {
   const completed = completedRows(rows);
   const passCount = completed.filter((row) => row.verdict === "pass").length;
@@ -39,6 +49,9 @@ function buildSummary(rows: EvaluationRow[]): AnalyticsSummary {
   };
 }
 
+/**
+ * Aggregates pass-rate data by judge.
+ */
 function buildPassRateByJudge(rows: EvaluationRow[]): AnalyticsJudgeDatum[] {
   const grouped = new Map<string, AnalyticsJudgeDatum>();
 
@@ -72,6 +85,9 @@ function buildPassRateByJudge(rows: EvaluationRow[]): AnalyticsJudgeDatum[] {
     .sort((left, right) => right.passRate - left.passRate || right.completedCount - left.completedCount);
 }
 
+/**
+ * Aggregates pass-rate data by question template.
+ */
 function buildPassRateByQuestion(rows: EvaluationRow[]): AnalyticsQuestionDatum[] {
   const grouped = new Map<string, AnalyticsQuestionDatum>();
 
@@ -105,6 +121,9 @@ function buildPassRateByQuestion(rows: EvaluationRow[]): AnalyticsQuestionDatum[
     .sort((left, right) => right.passRate - left.passRate || right.completedCount - left.completedCount);
 }
 
+/**
+ * Counts verdict categories for the verdict-distribution chart.
+ */
 function buildVerdictDistribution(rows: EvaluationRow[]): AnalyticsVerdictDatum[] {
   const counts: Record<AnalyticsVerdictDatum["verdict"], number> = {
     pass: 0,
@@ -127,6 +146,9 @@ function buildVerdictDistribution(rows: EvaluationRow[]): AnalyticsVerdictDatum[
   }));
 }
 
+/**
+ * Floors a timestamp down to the requested time bucket boundary.
+ */
 function bucketDate(createdAt: string, timeBucket: "hour" | "day") {
   const date = new Date(createdAt);
   if (timeBucket === "hour") {
@@ -138,6 +160,9 @@ function bucketDate(createdAt: string, timeBucket: "hour" | "day") {
   return date.toISOString();
 }
 
+/**
+ * Formats a bucket key into a human-readable chart label.
+ */
 function formatBucketLabel(bucket: string, timeBucket: "hour" | "day") {
   const date = new Date(bucket);
   return timeBucket === "hour"
@@ -145,6 +170,9 @@ function formatBucketLabel(bucket: string, timeBucket: "hour" | "day") {
     : date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+/**
+ * Builds the evaluation-trend chart series.
+ */
 function buildEvaluationsOverTime(rows: EvaluationRow[], timeBucket: "hour" | "day"): AnalyticsTimeSeriesDatum[] {
   const grouped = new Map<string, AnalyticsTimeSeriesDatum>();
 
@@ -181,6 +209,9 @@ function buildEvaluationsOverTime(rows: EvaluationRow[], timeBucket: "hour" | "d
     }));
 }
 
+/**
+ * Builds the full analytics payload consumed by the dashboard page.
+ */
 export function buildAnalyticsResponse(input: AnalyticsInput): AnalyticsResponse {
   const timeBucket = input.timeBucket ?? "day";
   return {

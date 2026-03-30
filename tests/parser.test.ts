@@ -1,3 +1,6 @@
+/**
+ * Regression coverage for JSON parsing and answer preview helpers.
+ */
 import { describe, expect, it } from "vitest";
 import { buildAnswerPreview, coerceImportedSubmissionsToQueue, parseImportedSubmissions } from "../src/shared/parser";
 

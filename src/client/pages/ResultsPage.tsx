@@ -1,3 +1,6 @@
+/**
+ * Row-level results page used to inspect and delete evaluation records.
+ */
 import { useEffect, useState } from "react";
 import type { EvaluationRow, ResultsResponse } from "../../shared/types";
 import { Card } from "../components/Card";
@@ -5,6 +8,10 @@ import { MultiSelectChips } from "../components/MultiSelectChips";
 import { StatusBadge } from "../components/StatusBadge";
 import { api } from "../lib/api";
 
+/**
+ * Loads evaluation rows plus filter metadata and renders the row-level results
+ * experience.
+ */
 export function ResultsPage() {
   const [results, setResults] = useState<ResultsResponse | null>(null);
   const [judgeIds, setJudgeIds] = useState<string[]>([]);
@@ -15,6 +22,9 @@ export function ResultsPage() {
   const [clearingAll, setClearingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Fetches results using the current or provided filter state.
+   */
   async function loadResults(next?: {
     judgeIds?: string[];
     questionIds?: string[];
@@ -41,6 +51,9 @@ export function ResultsPage() {
     void loadResults();
   }, []);
 
+  /**
+   * Applies the next filter selection and reloads the result set.
+   */
   async function updateFilters(next: {
     judgeIds?: string[];
     questionIds?: string[];
@@ -59,6 +72,9 @@ export function ResultsPage() {
     });
   }
 
+  /**
+   * Deletes one evaluation row after confirmation.
+   */
   async function handleDeleteRow(row: EvaluationRow) {
     const confirmed = window.confirm(
       `Delete the evaluation for submission ${row.submissionId} by ${row.judgeName}? This cannot be undone.`,
@@ -80,6 +96,9 @@ export function ResultsPage() {
     }
   }
 
+  /**
+   * Deletes all currently visible evaluation rows.
+   */
   async function handleClearVisible() {
     const visibleCount = results?.rows.length ?? 0;
     if (visibleCount === 0) {
@@ -209,6 +228,9 @@ export function ResultsPage() {
   );
 }
 
+/**
+ * Renders a single evaluation row inside the results table.
+ */
 function ResultRow(props: { row: EvaluationRow; deleting: boolean; onDelete: () => void }) {
   const verdict = props.row.status === "failed" ? "failed" : props.row.verdict;
 

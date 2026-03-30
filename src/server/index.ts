@@ -1,3 +1,6 @@
+/**
+ * Express server bootstrap.
+ */
 import cors from "cors";
 import express from "express";
 import { ZodError } from "zod";
@@ -11,6 +14,9 @@ app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 app.use("/api", apiRouter);
 
+/**
+ * Shared error handler for validation and unexpected server failures.
+ */
 app.use((error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
   if (error instanceof ZodError) {
     response.status(400).json({

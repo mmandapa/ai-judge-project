@@ -1,3 +1,6 @@
+/**
+ * Root application shell and route table.
+ */
 import { lazy, Suspense } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import { JudgesPage } from "./pages/JudgesPage";
@@ -9,6 +12,9 @@ const AnalyticsPage = lazy(() =>
   import("./pages/AnalyticsPage").then((module) => ({ default: module.AnalyticsPage })),
 );
 
+/**
+ * Renders the global navigation and page routing for the app.
+ */
 export function App() {
   return (
     <div className="shell">

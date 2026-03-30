@@ -1,3 +1,6 @@
+/**
+ * Regression coverage for queue execution behavior.
+ */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { runEvaluationsForQueue } from "../src/server/lib/evaluationRunner";
 

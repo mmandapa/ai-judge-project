@@ -1,8 +1,14 @@
+/**
+ * Shared Supabase client factory used by the backend.
+ */
 import { createClient } from "@supabase/supabase-js";
 import { getEnv } from "./env.js";
 
 let client: ReturnType<typeof createClient> | null = null;
 
+/**
+ * Lazily creates and caches a Supabase client for server-side calls.
+ */
 export function getSupabaseClient() {
   if (client) {
     return client;

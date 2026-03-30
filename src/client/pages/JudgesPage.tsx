@@ -1,3 +1,6 @@
+/**
+ * Judge management page.
+ */
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { JudgeRecord } from "../../shared/types";
@@ -13,6 +16,9 @@ type JudgeFormState = {
   active: boolean;
 };
 
+/**
+ * Blank form state used when creating a new judge or after save/delete.
+ */
 const emptyForm: JudgeFormState = {
   name: "",
   rubricPrompt: "",
@@ -21,6 +27,9 @@ const emptyForm: JudgeFormState = {
   active: true,
 };
 
+/**
+ * Lets the user create, edit, and delete reusable judge definitions.
+ */
 export function JudgesPage() {
   const [searchParams] = useSearchParams();
   const [judges, setJudges] = useState<JudgeRecord[]>([]);
@@ -31,6 +40,9 @@ export function JudgesPage() {
   const [error, setError] = useState<string | null>(null);
   const returnTo = searchParams.get("returnTo");
 
+  /**
+   * Loads the current judge list from the backend.
+   */
   async function loadJudges() {
     try {
       setLoading(true);
@@ -47,6 +59,9 @@ export function JudgesPage() {
     void loadJudges();
   }, []);
 
+  /**
+   * Saves either a new judge or edits the selected judge.
+   */
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
@@ -68,6 +83,9 @@ export function JudgesPage() {
     }
   }
 
+  /**
+   * Deletes the currently selected judge after user confirmation.
+   */
   async function handleDeleteJudge() {
     if (!form.id) {
       return;

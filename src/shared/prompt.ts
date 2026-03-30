@@ -1,3 +1,6 @@
+/**
+ * Shared prompt-building utilities used by both preview and execution paths.
+ */
 import {
   defaultPromptFieldConfig,
   type PromptFieldConfig,
@@ -16,10 +19,16 @@ type PromptInput = {
   attachments?: SubmissionAttachment[];
 };
 
+/**
+ * Merges a partial config with the prompt field defaults.
+ */
 function normalizePromptFieldConfig(config?: PromptFieldConfig): PromptFieldConfig {
   return { ...defaultPromptFieldConfig, ...(config ?? {}) };
 }
 
+/**
+ * Builds the exact system prompt and user JSON payload sent to the provider.
+ */
 export function buildPromptPayload(input: PromptInput) {
   const promptFieldConfig = normalizePromptFieldConfig(input.promptFieldConfig);
   const payload: Record<string, unknown> = {};
@@ -54,6 +63,9 @@ export function buildPromptPayload(input: PromptInput) {
   };
 }
 
+/**
+ * Builds the preview data shown in queue setup.
+ */
 export function buildPromptPreview(input: PromptInput): PromptPreviewData {
   const prompt = buildPromptPayload(input);
   return {

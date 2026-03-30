@@ -1,3 +1,7 @@
+/**
+ * Shared schemas and TypeScript types used across the client, server, and
+ * tests.
+ */
 import { z } from "zod";
 
 export const verdictSchema = z.enum(["pass", "fail", "inconclusive"]);

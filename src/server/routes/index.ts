@@ -1,3 +1,6 @@
+/**
+ * Express route definitions for the AI Judge API.
+ */
 import express from "express";
 import multer from "multer";
 import path from "node:path";
@@ -14,6 +17,9 @@ const router = express.Router();
 const database = new Database(getSupabaseClient());
 const allowedAttachmentMimeTypes = new Set(["image/png", "image/jpeg", "image/webp", "application/pdf"]);
 
+/**
+ * Converts lower-level metadata persistence failures into clearer API errors.
+ */
 function normalizeAttachmentPersistenceError(error: unknown): Error {
   const message = error instanceof Error ? error.message : String(error);
   if (message.toLowerCase().includes("row-level security")) {
@@ -35,6 +41,9 @@ function normalizeAttachmentPersistenceError(error: unknown): Error {
   return error instanceof Error ? error : new Error(message);
 }
 
+/**
+ * Sanitizes an uploaded filename so it can safely be used in storage paths.
+ */
 function sanitizeStorageFileName(originalName: string): string {
   const baseName = path.basename(originalName).normalize("NFKD");
   const extension = path.extname(baseName).toLowerCase();

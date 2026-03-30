@@ -1,3 +1,6 @@
+/**
+ * OpenAI-backed provider implementation.
+ */
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { buildPromptPayload } from "../../shared/prompt.js";
@@ -18,14 +21,23 @@ export type EvaluationProviderInput = {
   attachments: SubmissionAttachment[];
 };
 
+/**
+ * Contract shared by evaluation providers.
+ */
 export interface EvaluationProvider {
   evaluate(input: EvaluationProviderInput): Promise<EvaluationOutput & { rawResponse: unknown; attachmentsUsed: boolean }>;
 }
 
+/**
+ * Calls the OpenAI Responses API and parses the structured verdict payload.
+ */
 export class OpenAIEvaluationProvider implements EvaluationProvider {
   private readonly client: OpenAI;
   private readonly defaultModel: string;
 
+  /**
+   * Creates an OpenAI client from the validated server environment.
+   */
   constructor() {
     const env = getEnv();
     this.client = new OpenAI({
@@ -35,6 +47,10 @@ export class OpenAIEvaluationProvider implements EvaluationProvider {
     this.defaultModel = env.OPENAI_MODEL;
   }
 
+  /**
+   * Builds the prompt payload, resolves attachments, and returns the parsed
+   * provider output plus raw response metadata.
+   */
   async evaluate(input: EvaluationProviderInput): Promise<EvaluationOutput & { rawResponse: unknown; attachmentsUsed: boolean }> {
     const prompt = buildPromptPayload({
       rubricPrompt: input.judge.rubricPrompt,

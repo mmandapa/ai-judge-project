@@ -1,3 +1,6 @@
+/**
+ * Attachment helpers for storage error normalization and multimodal conversion.
+ */
 import { execFile } from "node:child_process";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -21,6 +24,9 @@ type AttachmentContentPart = {
   detail: "low";
 };
 
+/**
+ * Converts raw storage failures into clearer product-level messages.
+ */
 export function normalizeAttachmentStorageError(error: unknown): Error {
   const message = error instanceof Error ? error.message : String(error);
   if (message.toLowerCase().includes("bucket not found")) {
@@ -37,6 +43,9 @@ export function normalizeAttachmentStorageError(error: unknown): Error {
   return error instanceof Error ? error : new Error(message);
 }
 
+/**
+ * Rasterizes a PDF into PNG pages so it can be forwarded as image input.
+ */
 async function renderPdfPages(pdfBuffer: Buffer): Promise<Buffer[]> {
   const workingDir = await mkdtemp(path.join(tmpdir(), "ai-judge-pdf-"));
   const inputPath = path.join(workingDir, "attachment.pdf");
@@ -64,6 +73,9 @@ async function renderPdfPages(pdfBuffer: Buffer): Promise<Buffer[]> {
   }
 }
 
+/**
+ * Downloads attachments from storage and converts them into OpenAI image parts.
+ */
 export async function resolveAttachmentContentParts(
   supabase: SupabaseClient,
   attachments: SubmissionAttachment[],

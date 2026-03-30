@@ -1,3 +1,6 @@
+/**
+ * Environment parsing for the server process.
+ */
 import dotenv from "dotenv";
 import { z } from "zod";
 
@@ -14,6 +17,9 @@ const envSchema = z.object({
 
 export type AppEnv = z.infer<typeof envSchema>;
 
+/**
+ * Returns the validated server environment.
+ */
 export function getEnv(): AppEnv {
   return envSchema.parse(process.env);
 }

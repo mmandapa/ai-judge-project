@@ -1,3 +1,6 @@
+/**
+ * Queue landing page and staged batch import workspace.
+ */
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { parseImportedSubmissions } from "../../shared/parser";
@@ -15,10 +18,17 @@ type StagedImportEntry = {
   attachments: PendingSubmissionAttachment[];
 };
 
+/**
+ * Builds a deterministic local id for a staged import entry.
+ */
 function buildEntryId(file: File) {
   return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
+/**
+ * Lets the user stage one or more JSON imports before committing them as a
+ * batch.
+ */
 export function QueuesPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -29,6 +39,9 @@ export function QueuesPage() {
   const [stagedEntries, setStagedEntries] = useState<StagedImportEntry[]>([]);
   const [importSummary, setImportSummary] = useState<string | null>(null);
 
+  /**
+   * Loads queue summaries for the list shown below the import workspace.
+   */
   async function loadQueues() {
     try {
       setLoading(true);
@@ -64,6 +77,9 @@ export function QueuesPage() {
     };
   }, [stagedEntries]);
 
+  /**
+   * Parses a newly chosen JSON file and stages it as an import entry.
+   */
   async function handleAddEntry(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -96,14 +112,23 @@ export function QueuesPage() {
     }
   }
 
+  /**
+   * Applies an immutable update to one staged import entry.
+   */
   function updateEntry(entryId: string, updater: (entry: StagedImportEntry) => StagedImportEntry) {
     setStagedEntries((current) => current.map((entry) => (entry.id === entryId ? updater(entry) : entry)));
   }
 
+  /**
+   * Removes one staged import entry from the workspace.
+   */
   function removeEntry(entryId: string) {
     setStagedEntries((current) => current.filter((entry) => entry.id !== entryId));
   }
 
+  /**
+   * Adds one or more supporting files to a staged entry before import.
+   */
   function handleAttachmentSelection(entryId: string, event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
@@ -130,6 +155,10 @@ export function QueuesPage() {
     setError(null);
   }
 
+  /**
+   * Sends the entire staged import batch to the server, then uploads any mapped
+   * attachments for the imported submissions.
+   */
   async function handleImportBatch() {
     if (!canImport) {
       setError("Choose a target queue for every entry and assign each attachment to a submission before importing.");

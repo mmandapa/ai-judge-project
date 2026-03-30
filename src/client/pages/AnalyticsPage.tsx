@@ -1,3 +1,6 @@
+/**
+ * Interactive analytics dashboard page.
+ */
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import {
   Bar,
@@ -38,15 +41,24 @@ const verdictColors: Record<string, string> = {
   failed: "#536172",
 };
 
+/**
+ * Parses a comma-separated filter value from the URL query string.
+ */
 function parseList(searchParams: URLSearchParams, key: string) {
   return searchParams.get(key)?.split(",").filter(Boolean) ?? [];
 }
 
+/**
+ * Converts an ISO timestamp into the YYYY-MM-DD format expected by date inputs.
+ */
 function toDateInputValue(value?: string | null) {
   if (!value) return "";
   return value.slice(0, 10);
 }
 
+/**
+ * Resolves the active date preset into concrete start/end timestamps.
+ */
 function toRange(searchParams: URLSearchParams) {
   const preset = (searchParams.get("preset") as Preset | null) ?? "7d";
   const startDate = searchParams.get("startDate");
@@ -85,6 +97,9 @@ function toRange(searchParams: URLSearchParams) {
   };
 }
 
+/**
+ * Loads analytics data, keeps filters in the URL, and renders the dashboard.
+ */
 export function AnalyticsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
@@ -111,6 +126,10 @@ export function AnalyticsPage() {
     };
   }, [searchParams]);
 
+  /**
+   * Writes the next filter state back into the URL so the dashboard remains
+   * shareable and refresh-safe.
+   */
   function updateSearch(next: Partial<{
     queueId: string;
     judgeIds: string[];
@@ -570,6 +589,9 @@ export function AnalyticsPage() {
   );
 }
 
+/**
+ * Small KPI card used in the analytics overview row.
+ */
 function KpiCard(props: { label: string; value: string; emphasis?: boolean }) {
   return (
     <Card>
@@ -581,6 +603,9 @@ function KpiCard(props: { label: string; value: string; emphasis?: boolean }) {
   );
 }
 
+/**
+ * Shared chart-card wrapper used by the inline analytics dashboard.
+ */
 function AnalyticsChartCard(props: {
   title: string;
   subtitle: string;

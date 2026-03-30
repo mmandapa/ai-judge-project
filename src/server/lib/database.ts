@@ -1,3 +1,6 @@
+/**
+ * Database access layer for the server.
+ */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   AnalyticsResponse,
@@ -59,6 +62,9 @@ type SubmissionAttachmentInput = {
   fileSize: number;
 };
 
+/**
+ * Maps a raw judge row from Supabase into the shared judge type.
+ */
 function mapJudge(row: JudgeRow): JudgeRecord {
   return {
     id: row.id,
@@ -72,6 +78,9 @@ function mapJudge(row: JudgeRow): JudgeRecord {
   };
 }
 
+/**
+ * Maps a raw attachment row from Supabase into the shared attachment type.
+ */
 function mapAttachment(row: SubmissionAttachmentRow): SubmissionAttachment {
   return {
     id: row.id,
@@ -84,6 +93,9 @@ function mapAttachment(row: SubmissionAttachmentRow): SubmissionAttachment {
   };
 }
 
+/**
+ * Throws when a required DB value is unexpectedly missing.
+ */
 function must<T>(value: T | null, message: string): T {
   if (value === null) {
     throw new Error(message);
@@ -101,9 +113,15 @@ type EvaluationFilters = {
   endAt?: string;
 };
 
+/**
+ * Central data-access service used by routes and evaluation execution.
+ */
 export class Database {
   constructor(private readonly supabase: SupabaseClient) {}
 
+  /**
+   * Imports submissions, questions, and answers from challenge JSON.
+   */
   async importSubmissions(
     submissions: ImportedSubmission[],
     sourceFileName: string,

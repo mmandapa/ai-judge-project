@@ -1,3 +1,9 @@
+/**
+ * Queue setup page.
+ *
+ * This is where the user appends submissions, assigns judges, chooses prompt
+ * fields, and starts queue runs.
+ */
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { ImportedSubmission, JudgeRecord, PromptFieldConfig, QueueDetail, QuestionJudgeAssignment } from "../../shared/types";
@@ -7,6 +13,9 @@ import { Card } from "../components/Card";
 import { MultiSelectChips } from "../components/MultiSelectChips";
 import { api, buildAttachmentId, buildSubmissionOptionLabel, type PendingSubmissionAttachment } from "../lib/api";
 
+/**
+ * Human-readable labels for each prompt field toggle.
+ */
 const promptFieldLabels: Array<{ key: keyof PromptFieldConfig; label: string; description: string }> = [
   { key: "includeQuestionText", label: "Question text", description: "Send the exact question wording." },
   { key: "includeQuestionType", label: "Question type", description: "Send the question type label." },
@@ -16,6 +25,9 @@ const promptFieldLabels: Array<{ key: keyof PromptFieldConfig; label: string; de
   { key: "includeAttachments", label: "Attachments", description: "Forward screenshots and PDFs when available." },
 ];
 
+/**
+ * Loads and edits all queue-level setup for a single queue.
+ */
 export function QueueDetailPage() {
   const { queueId = "" } = useParams();
   const [searchParams] = useSearchParams();
@@ -34,6 +46,9 @@ export function QueueDetailPage() {
   const [appending, setAppending] = useState(false);
   const [appendSummary, setAppendSummary] = useState<string | null>(null);
 
+  /**
+   * Loads the queue setup data and reusable judge list.
+   */
   async function loadPage() {
     try {
       setLoading(true);
@@ -98,6 +113,9 @@ export function QueueDetailPage() {
     [queueId, searchParams],
   );
 
+  /**
+   * Persists the current draft assignment state for every question in the queue.
+   */
   async function saveAssignments() {
     if (!detail) {
       return;
@@ -112,6 +130,9 @@ export function QueueDetailPage() {
     );
   }
 
+  /**
+   * Saves queue setup and refreshes the page data.
+   */
   async function handleSaveAssignments() {
     try {
       setSavingAssignments(true);
@@ -125,6 +146,9 @@ export function QueueDetailPage() {
     }
   }
 
+  /**
+   * Saves setup, runs the selected questions, and refreshes the queue state.
+   */
   async function handleRun() {
     if (!detail) {
       return;
@@ -156,6 +180,9 @@ export function QueueDetailPage() {
     }
   }
 
+  /**
+   * Parses a JSON file chosen for appending more submissions to this queue.
+   */
   async function handleAppendJsonChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -181,6 +208,9 @@ export function QueueDetailPage() {
     }
   }
 
+  /**
+   * Adds pending attachment files for the append workflow.
+   */
   function handleAppendAttachmentSelection(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
@@ -202,6 +232,9 @@ export function QueueDetailPage() {
     setError(null);
   }
 
+  /**
+   * Appends submissions to the current queue and uploads any mapped files.
+   */
   async function handleAppendSubmissions() {
     if (!appendJsonFile) {
       setError("Choose a JSON file before appending submissions.");
@@ -245,6 +278,10 @@ export function QueueDetailPage() {
     }
   }
 
+  /**
+   * Replaces the selected judges for one question while preserving any existing
+   * prompt-field configs for judges that remain selected.
+   */
   function setSelectedJudges(questionTemplateId: string, judgeIds: string[]) {
     const existingByJudgeId = new Map((draftAssignments[questionTemplateId] ?? []).map((assignment) => [assignment.judgeId, assignment]));
     setDraftAssignments((current) => ({
@@ -256,6 +293,9 @@ export function QueueDetailPage() {
     }));
   }
 
+  /**
+   * Toggles one prompt field for one specific judge assignment.
+   */
   function updatePromptField(questionTemplateId: string, judgeId: string, key: keyof PromptFieldConfig, value: boolean) {
     setDraftAssignments((current) => ({
       ...current,

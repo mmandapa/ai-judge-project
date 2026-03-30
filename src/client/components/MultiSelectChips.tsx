@@ -1,13 +1,22 @@
+/**
+ * Reusable chip-based multi-select control.
+ */
 type Option = {
   id: string;
   label: string;
 };
 
+/**
+ * Renders toggleable chips and reports the updated selection to the parent.
+ */
 export function MultiSelectChips(props: {
   options: Option[];
   selected: string[];
   onChange: (next: string[]) => void;
 }) {
+  /**
+   * Adds or removes a chip id from the selected set.
+   */
   function toggle(id: string) {
     if (props.selected.includes(id)) {
       props.onChange(props.selected.filter((value) => value !== id));

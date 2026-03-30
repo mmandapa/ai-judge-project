@@ -1,3 +1,6 @@
+/**
+ * Regression coverage for analytics aggregation.
+ */
 import { describe, expect, it } from "vitest";
 import { buildAnalyticsResponse } from "../src/shared/analytics";
 import type { EvaluationRow } from "../src/shared/types";
