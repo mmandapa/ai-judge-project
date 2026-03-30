@@ -432,6 +432,18 @@ export class Database {
   }
 
   async deleteJudge(judgeId: string): Promise<DeleteJudgeResponse> {
+    const { count, error: evaluationCountError } = await this.supabase
+      .from("evaluations")
+      .select("id", { count: "exact", head: true })
+      .eq("judge_id", judgeId);
+    if (evaluationCountError) {
+      throw evaluationCountError;
+    }
+
+    if ((count ?? 0) > 0) {
+      throw new Error("This judge has past evaluations and cannot be deleted.");
+    }
+
     const { error: assignmentDeleteError } = await this.supabase
       .from("judge_assignments")
       .delete()
