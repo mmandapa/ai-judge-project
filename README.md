@@ -1,61 +1,160 @@
 # AI Judge
 
-React 19 + TypeScript take-home implementation for the Besimple AI AI Judge challenge. The app imports submission JSON, optionally maps attachments during import, supports per-submission file uploads later, persists data in Supabase, manages reusable judge definitions, lets each queue assignment control which fields reach the LLM prompt, runs real OpenAI evaluations server-side, and now includes a dedicated analytics dashboard with animated charts and live filterable rollups.
+Take-home implementation for the Besimple AI Judge challenge. This project imports submission JSON, groups work into queues, lets users assign one or more judges per question, runs real LLM evaluations server-side, persists results in Supabase, and includes bonus features like file attachments, prompt field selection, and an analytics dashboard with animated charts.
+
+## What’s implemented
+
+### Core requirements
+
+- Queue-based submission import and persistence
+- Judge creation and persistence
+- Per-question judge assignment inside a queue
+- `Run AI Judges` action on the queue page
+- Real OpenAI provider calls during evaluation
+- Persisted evaluation records with:
+  - verdict
+  - judge used
+  - short reasoning
+- Results page with filtering and row-level inspection
+
+### Bonus / extra features implemented
+
+- File attachments per submission, including images and PDFs
+- Attachment forwarding to OpenAI when supported
+- Assignment-level prompt field selection:
+  - question text
+  - question type
+  - answer payload
+  - submission ID
+  - labeling task ID
+  - attachments
+- Staged batch import workspace:
+  - stage multiple JSON entries before import
+  - choose whether each entry creates a new queue or merges into an existing queue
+  - map attachments per staged entry before import
+- Queue setup flow with:
+  - judge assignment
+  - prompt-field controls
+  - per-run question checkboxes
+- Analytics dashboard with:
+  - pass rate by judge
+  - pass rate by question
+  - verdict mix
+  - evaluations over time
+  - date and entity filters
+  - animated and expandable charts
 
 ## Stack
 
 - React 19 + Vite + React Router
 - Express API server
-- Supabase for persistence
-- OpenAI Responses API for judge execution
-- Vitest for parser/aggregate tests
+- Supabase for persistence and storage
+- OpenAI Responses API for evaluation execution
+- Recharts for analytics visualizations
+- Vitest for tests
 
 ## Setup
 
-1. Copy `.env.example` to `.env` and fill in your Supabase and OpenAI credentials.
-2. Ensure your Supabase project already has the required tables, policies, RPCs, and the additive schema in `supabase_bonus_features.sql`.
-3. Install dependencies with `pnpm install`.
-4. Start the app with `pnpm dev`.
-5. Open `http://localhost:5173`.
+### 1. Install dependencies
 
-The Vite frontend runs on port `5173` and proxies API calls to the Express server on port `8787`.
+```bash
+pnpm install
+```
 
-This project intentionally uses the Supabase anon key with permissive public policies because the take-home app has no auth flow. That is acceptable for a demo submission, but it is not production-safe.
+### 2. Configure environment
 
-## Attachment Setup
+Copy `.env.example` to `.env` and fill in the required values.
 
-1. Run `supabase_bonus_features.sql`.
-2. Verify the `submission-attachments` Storage bucket exists.
-3. Verify the SQL created policies for:
-   `submission_attachments`
-   `submissions` update
-   `storage.objects` in bucket `submission-attachments`
-4. Restart the app if you changed `.env` or Supabase project configuration.
+Expected environment variables are the app’s Supabase and OpenAI credentials, including:
 
-If attachment upload fails with a row-level security error, the missing piece is almost always one of those policies.
+- Supabase URL
+- Supabase anon key
+- OpenAI API key
+- optional OpenAI base URL / model overrides if you are testing against a compatible endpoint
 
-## Core flow
+### 3. Apply Supabase schema
 
-1. Stage one or more challenge JSON files on the Queues page.
-2. For each staged entry, choose whether it should create a new queue or merge into an existing queue.
-3. Optionally map screenshots or PDFs to the submissions inside each staged entry.
-4. Import the whole batch at once, then land in queue setup for one of the affected queues.
-5. In queue setup, assign one or more judges to each question template and choose which fields each judge assignment should send to the LLM.
-6. Choose which questions to run for the current run, then start the queue.
-7. Review pass/fail/inconclusive results on the Results page.
-8. Open Analytics for animated pass-rate and trend dashboards by queue, judge, question, verdict, and date range.
+Set up the required Supabase tables, columns, and policies for the current implementation, including:
 
-## Prompt Field Selection
+- `submission_attachments`
+- `submissions.has_attachments`
+- `evaluations.attachments_used`
+- `judge_assignments.prompt_field_config`
 
-Each queue assignment can control which fields are sent to the LLM for that judge on that question:
-- question text
-- question type
-- answer payload
-- submission ID
-- upstream labeling task ID
-- attachments, when the provider supports multimodal input
+### 4. Create / verify the Storage bucket
 
-Judges themselves stay reusable: name, rubric, provider, model, and active state are defined on the Judges page, while prompt-field selection happens in queue setup where the evaluation context is visible.
+The app expects a Supabase Storage bucket named exactly:
+
+`submission-attachments`
+
+Because this submission does not include an auth flow, the Supabase project also needs permissive demo policies for the app to read and write these resources.
+
+### 5. Optional PDF dependency
+
+PDF attachment forwarding relies on a server-side `pdftoppm` binary for rasterization before sending pages to the model.
+
+If you want PDF attachments to work end to end, make sure `pdftoppm` is available in the environment running the server.
+
+### 6. Start the app
+
+```bash
+pnpm dev
+```
+
+Then open:
+
+`http://localhost:5173`
+
+The Vite frontend runs on port `5173` and proxies API requests to the Express server on port `8787`.
+
+## Product flow
+
+### 1. Stage imports
+
+On the `Queues` page:
+
+- add one or more JSON entries
+- for each entry, choose whether it should:
+  - create a new queue
+  - merge into an existing queue
+- optionally add and map attachments to submissions inside that entry
+
+### 2. Import the staged batch
+
+Import commits the full staged batch in one action. After import, the app routes into queue setup for one affected queue and links to any other queues touched in that batch.
+
+### 3. Configure the queue
+
+On the queue setup page:
+
+- assign one or more judges per question
+- configure prompt fields per `(question × judge assignment)`
+- choose which questions to run for the current run only
+- upload more submission attachments if needed
+
+### 4. Run AI Judges
+
+`Run queue` will:
+
+1. iterate the submissions in that queue
+2. look up the selected judges for each question
+3. call the real provider for every `(question × judge)` pair
+4. persist evaluation results in Supabase
+
+### 5. Inspect outcomes
+
+- `Results` is for row-level filtering and inspection
+- `Analytics` is for aggregated charts and trends
+
+## Prompt field selection
+
+Prompt field selection is implemented at the assignment level, not the judge level.
+
+That was a deliberate product decision:
+
+- judges stay reusable templates
+- prompt shape is specific to the queue/question context
+- the user can see the evaluation context when deciding what the LLM should receive
 
 ## API summary
 
@@ -73,21 +172,28 @@ Judges themselves stay reusable: name, rubric, provider, model, and active state
 - `GET /api/results`
 - `GET /api/analytics`
 
-## Trade-offs
+## Scope cuts and decisions
 
-- The provider interface is in place, but only OpenAI is fully implemented to keep the submission focused and reliable.
-- Authentication is intentionally omitted because the prompt does not require multi-user access control.
-- Supabase is configured with open anon policies so the app can operate without auth or a service-role key.
-- The evaluation runner executes inline on the API server for simplicity; moving it to a background job or Supabase Edge Function would be the next hardening step.
-- Attachments are forwarded only for providers that support multimodal input. OpenAI is implemented in this version.
-- If uploads fail with a bucket error, create a Supabase Storage bucket named `submission-attachments`.
-- If uploads fail with a row-level security error, apply the attachment policies in `supabase_bonus_features.sql`.
-- PDF attachments rely on a server-side `pdftoppm` binary for rasterization before forwarding to the LLM.
+These are the main scope cuts and product decisions behind the implementation:
+
+- **Provider execution:** I implemented **OpenAI** as the only fully wired evaluation backend end-to-end. Adding multiple providers would require extra vendor setup, keys, and test spend, so I kept execution reliable and focused on the core workflow.
+- **Prompt-field selection:** Prompt inclusion is configured **per judge assignment** (per queue/question/judge), so judge definitions stay reusable while the prompt context can vary by question.
+- **Run execution model:** Evaluations run **inline from the API** (no separate worker process) to keep the take-home demo simple and debuggable.
+- **Analytics charts:** The analytics dashboard uses **Recharts** because it’s React-friendly and makes it quick to render several chart types from the same aggregated metrics.
+
+## Known operational requirements
+
+- If attachment upload fails with a bucket error, create the `submission-attachments` bucket.
+- If attachment upload fails with a row-level security error, verify the required storage and table policies exist in Supabase.
+- If PDF attachments are uploaded but not forwarded correctly, verify that `pdftoppm` is installed where the server runs.
 
 ## Tests
 
-- `pnpm test`
+```bash
+pnpm test
+pnpm build
+```
 
-## Time Spent
+## Time spent
 
-- Approx. 6-8 hours depending on Supabase environment setup and demo prep.
+Approximately 4 hours.
