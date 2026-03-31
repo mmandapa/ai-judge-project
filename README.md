@@ -181,12 +181,6 @@ These are the main scope cuts and product decisions behind the implementation:
 - **Run execution model:** Evaluations run **inline from the API** (no separate worker process) to keep the take-home demo simple and debuggable.
 - **Analytics charts:** The analytics dashboard uses **Recharts** because it’s React-friendly and makes it quick to render several chart types from the same aggregated metrics.
 
-## Known operational requirements
-
-- If attachment upload fails with a bucket error, create the `submission-attachments` bucket.
-- If attachment upload fails with a row-level security error, verify the required storage and table policies exist in Supabase.
-- If PDF attachments are uploaded but not forwarded correctly, verify that `pdftoppm` is installed where the server runs.
-
 ## Tests
 
 ```bash
