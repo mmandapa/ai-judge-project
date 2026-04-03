@@ -3,7 +3,7 @@
  */
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import type { JudgeRecord } from "../../shared/types";
+import { GEMINI_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL, type JudgeRecord, type ModelProvider } from "../../shared/types";
 import { Card } from "../components/Card";
 import { api } from "../lib/api";
 
@@ -11,7 +11,7 @@ type JudgeFormState = {
   id?: string;
   name: string;
   rubricPrompt: string;
-  provider: string;
+  provider: ModelProvider;
   model: string;
   active: boolean;
 };
@@ -23,9 +23,13 @@ const emptyForm: JudgeFormState = {
   name: "",
   rubricPrompt: "",
   provider: "openai",
-  model: "gpt-4.1-mini",
+  model: OPENAI_DEFAULT_MODEL,
   active: true,
 };
+
+function getDefaultModel(provider: ModelProvider) {
+  return provider === "gemini" ? GEMINI_DEFAULT_MODEL : OPENAI_DEFAULT_MODEL;
+}
 
 /**
  * Lets the user create, edit, and delete reusable judge definitions.
@@ -83,6 +87,23 @@ export function JudgesPage() {
     }
   }
 
+  function handleProviderChange(nextProvider: ModelProvider) {
+    setForm((current) => {
+      const currentDefaultModel = getDefaultModel(current.provider);
+      const nextModel = nextProvider === "gemini"
+        ? GEMINI_DEFAULT_MODEL
+        : current.provider === "gemini" || current.model === currentDefaultModel
+          ? OPENAI_DEFAULT_MODEL
+          : current.model;
+
+      return {
+        ...current,
+        provider: nextProvider,
+        model: nextModel,
+      };
+    });
+  }
+
   /**
    * Deletes the currently selected judge after user confirmation.
    */
@@ -137,15 +158,22 @@ export function JudgesPage() {
           </label>
           <label className="field">
             <span>Provider</span>
-            <input
+            <select
               value={form.provider}
-              onChange={(event) => setForm({ ...form, provider: event.target.value })}
-              required
-            />
+              onChange={(event) => handleProviderChange(event.target.value as ModelProvider)}
+            >
+              <option value="openai">OpenAI</option>
+              <option value="gemini">Gemini</option>
+            </select>
           </label>
           <label className="field">
             <span>Model</span>
-            <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} required />
+            <input
+              value={form.model}
+              onChange={(event) => setForm({ ...form, model: event.target.value })}
+              required
+              disabled={form.provider === "gemini"}
+            />
           </label>
           <label className="checkbox">
             <input

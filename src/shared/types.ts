@@ -7,6 +7,12 @@ import { z } from "zod";
 export const verdictSchema = z.enum(["pass", "fail", "inconclusive"]);
 export type Verdict = z.infer<typeof verdictSchema>;
 
+export const modelProviderSchema = z.enum(["openai", "gemini"]);
+export type ModelProvider = z.infer<typeof modelProviderSchema>;
+
+export const OPENAI_DEFAULT_MODEL = "gpt-4.1-mini";
+export const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
+
 export const importedQuestionSchema = z.object({
   rev: z.number(),
   data: z.object({
@@ -80,7 +86,7 @@ export type JudgeRecord = {
   id: string;
   name: string;
   rubricPrompt: string;
-  provider: string;
+  provider: ModelProvider;
   model: string;
   active: boolean;
   createdAt: string;

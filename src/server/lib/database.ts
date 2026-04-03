@@ -10,6 +10,7 @@ import type {
   EvaluationRunSummary,
   ImportedSubmission,
   JudgeRecord,
+  ModelProvider,
   PromptFieldConfig,
   QuestionJudgeAssignment,
   QueueDetail,
@@ -31,7 +32,7 @@ type JudgeRow = {
   id: string;
   name: string;
   rubric_prompt: string;
-  provider: string;
+  provider: ModelProvider;
   model: string;
   active: boolean;
   created_at: string;
@@ -394,7 +395,7 @@ export class Database {
   async createJudge(input: {
     name: string;
     rubricPrompt: string;
-    provider: string;
+    provider: ModelProvider;
     model: string;
     active: boolean;
   }): Promise<JudgeRecord> {
@@ -422,7 +423,7 @@ export class Database {
     input: Partial<{
       name: string;
       rubricPrompt: string;
-      provider: string;
+      provider: ModelProvider;
       model: string;
       active: boolean;
     }>,
@@ -657,7 +658,7 @@ export class Database {
     submissionId: string;
     questionTemplateId: string;
     judgeId: string;
-    provider: string;
+    provider: ModelProvider;
     model: string;
     verdict: "pass" | "fail" | "inconclusive";
     reasoning: string;

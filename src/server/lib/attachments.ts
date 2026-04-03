@@ -24,6 +24,11 @@ type AttachmentContentPart = {
   detail: "low";
 };
 
+export type ResolvedAttachmentInlineData = {
+  mimeType: string;
+  data: string;
+};
+
 /**
  * Converts raw storage failures into clearer product-level messages.
  */
@@ -74,17 +79,18 @@ async function renderPdfPages(pdfBuffer: Buffer): Promise<Buffer[]> {
 }
 
 /**
- * Downloads attachments from storage and converts them into OpenAI image parts.
+ * Downloads attachments from storage and converts them into provider-agnostic
+ * inline image payloads.
  */
-export async function resolveAttachmentContentParts(
+export async function resolveAttachmentInlineData(
   supabase: SupabaseClient,
   attachments: SubmissionAttachment[],
-): Promise<AttachmentContentPart[]> {
+): Promise<ResolvedAttachmentInlineData[]> {
   const eligibleAttachments = attachments
     .filter((attachment) => (attachment.fileSize ?? 0) <= attachmentLimits.maxFileSizeBytes)
     .slice(0, attachmentLimits.maxFiles);
 
-  const parts: AttachmentContentPart[] = [];
+  const parts: ResolvedAttachmentInlineData[] = [];
 
   for (const attachment of eligibleAttachments) {
     const { data, error } = await supabase.storage.from(attachmentBucket).download(attachment.storagePath);
@@ -98,20 +104,33 @@ export async function resolveAttachmentContentParts(
       const pages = await renderPdfPages(bytes);
       for (const page of pages) {
         parts.push({
-          type: "input_image",
-          image_url: `data:image/png;base64,${page.toString("base64")}`,
-          detail: "low",
+          mimeType: "image/png",
+          data: page.toString("base64"),
         });
       }
       continue;
     }
 
     parts.push({
-      type: "input_image",
-      image_url: `data:${attachment.mimeType};base64,${bytes.toString("base64")}`,
-      detail: "low",
+      mimeType: attachment.mimeType,
+      data: bytes.toString("base64"),
     });
   }
 
   return parts;
+}
+
+/**
+ * Converts eligible attachments into OpenAI image parts.
+ */
+export async function resolveAttachmentContentParts(
+  supabase: SupabaseClient,
+  attachments: SubmissionAttachment[],
+): Promise<AttachmentContentPart[]> {
+  const parts = await resolveAttachmentInlineData(supabase, attachments);
+  return parts.map((part) => ({
+    type: "input_image",
+    image_url: `data:${part.mimeType};base64,${part.data}`,
+    detail: "low",
+  }));
 }

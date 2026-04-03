@@ -1,6 +1,7 @@
 import type { EvaluationRunSummary } from "../../shared/types.js";
 import type { Database } from "./database.js";
-import { OpenAIEvaluationProvider } from "../providers/openaiProvider.js";
+import { createEvaluationProvider } from "../providers/index.js";
+import type { EvaluationProvider } from "../providers/types.js";
 
 type RunDependencies = {
   database: Database;
@@ -38,7 +39,7 @@ export async function runEvaluationsForQueue(
   }
 
   const runId = await database.createRun(queueId, workItems.length);
-  const provider = new OpenAIEvaluationProvider();
+  const providers = new Map<string, EvaluationProvider>();
 
   let completedCount = 0;
   let failedCount = 0;
@@ -49,6 +50,9 @@ export async function runEvaluationsForQueue(
     await Promise.all(
       batch.map(async (item) => {
         try {
+          const provider = providers.get(item.judge.provider) ?? createEvaluationProvider(item.judge.provider);
+          providers.set(item.judge.provider, provider);
+
           const evaluation = await provider.evaluate({
             judge: item.judge,
             promptFieldConfig: item.promptFieldConfig,

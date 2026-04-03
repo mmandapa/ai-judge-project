@@ -6,7 +6,13 @@ import multer from "multer";
 import path from "node:path";
 import { z } from "zod";
 import { coerceImportedSubmissionsToQueue, parseImportedSubmissions } from "../../shared/parser.js";
-import { defaultPromptFieldConfig, importTargetModeSchema, promptFieldConfigSchema } from "../../shared/types.js";
+import {
+  GEMINI_DEFAULT_MODEL,
+  defaultPromptFieldConfig,
+  importTargetModeSchema,
+  modelProviderSchema,
+  promptFieldConfigSchema,
+} from "../../shared/types.js";
 import { Database } from "../lib/database.js";
 import { attachmentBucket, attachmentLimits, normalizeAttachmentStorageError } from "../lib/attachments.js";
 import { runEvaluationsForQueue } from "../lib/evaluationRunner.js";
@@ -68,10 +74,25 @@ function sanitizeStorageFileName(originalName: string): string {
 const judgePayloadSchema = z.object({
   name: z.string().min(1),
   rubricPrompt: z.string().min(1),
-  provider: z.string().min(1).default("openai"),
+  provider: modelProviderSchema.default("openai"),
   model: z.string().min(1),
   active: z.boolean().default(true),
 });
+
+function normalizeJudgePayload<T extends { provider?: "openai" | "gemini"; model?: string }>(payload: T): T {
+  if (payload.provider === "gemini") {
+    return {
+      ...payload,
+      model: GEMINI_DEFAULT_MODEL,
+    };
+  }
+
+  if (payload.provider === "openai" && (!payload.model || !payload.model.trim())) {
+    throw new Error("OpenAI judges require a model.");
+  }
+
+  return payload;
+}
 
 const assignmentPayloadSchema = z.object({
   assignments: z.array(
@@ -282,7 +303,7 @@ router.get("/judges", async (_request, response, next) => {
 
 router.post("/judges", async (request, response, next) => {
   try {
-    const payload = judgePayloadSchema.parse(request.body);
+    const payload = normalizeJudgePayload(judgePayloadSchema.parse(request.body));
     response.status(201).json(await database.createJudge(payload));
   } catch (error) {
     next(error);
@@ -291,7 +312,7 @@ router.post("/judges", async (request, response, next) => {
 
 router.patch("/judges/:judgeId", async (request, response, next) => {
   try {
-    const payload = judgePayloadSchema.partial().parse(request.body);
+    const payload = normalizeJudgePayload(judgePayloadSchema.partial().parse(request.body));
     response.json(await database.updateJudge(request.params.judgeId, payload));
   } catch (error) {
     next(error);

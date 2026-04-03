@@ -4,29 +4,11 @@
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { buildPromptPayload } from "../../shared/prompt.js";
-import type { EvaluationOutput, JudgeRecord, PromptFieldConfig, SubmissionAttachment } from "../../shared/types.js";
 import { evaluationOutputSchema } from "../../shared/types.js";
 import { resolveAttachmentContentParts } from "../lib/attachments.js";
 import { getEnv } from "../lib/env.js";
 import { getSupabaseClient } from "../lib/supabase.js";
-
-export type EvaluationProviderInput = {
-  judge: JudgeRecord;
-  promptFieldConfig: PromptFieldConfig;
-  questionText: string;
-  questionType: string;
-  answer: unknown;
-  submissionId: string;
-  labelingTaskId: string | null;
-  attachments: SubmissionAttachment[];
-};
-
-/**
- * Contract shared by evaluation providers.
- */
-export interface EvaluationProvider {
-  evaluate(input: EvaluationProviderInput): Promise<EvaluationOutput & { rawResponse: unknown; attachmentsUsed: boolean }>;
-}
+import type { EvaluationProvider, EvaluationProviderInput, EvaluationProviderResult } from "./types.js";
 
 /**
  * Calls the OpenAI Responses API and parses the structured verdict payload.
@@ -40,6 +22,9 @@ export class OpenAIEvaluationProvider implements EvaluationProvider {
    */
   constructor() {
     const env = getEnv();
+    if (!env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is required to run judges with the OpenAI provider.");
+    }
     this.client = new OpenAI({
       apiKey: env.OPENAI_API_KEY,
       baseURL: env.OPENAI_BASE_URL,
@@ -51,7 +36,7 @@ export class OpenAIEvaluationProvider implements EvaluationProvider {
    * Builds the prompt payload, resolves attachments, and returns the parsed
    * provider output plus raw response metadata.
    */
-  async evaluate(input: EvaluationProviderInput): Promise<EvaluationOutput & { rawResponse: unknown; attachmentsUsed: boolean }> {
+  async evaluate(input: EvaluationProviderInput): Promise<EvaluationProviderResult> {
     const prompt = buildPromptPayload({
       rubricPrompt: input.judge.rubricPrompt,
       promptFieldConfig: input.promptFieldConfig,
