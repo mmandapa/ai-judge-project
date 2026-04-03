@@ -34,6 +34,7 @@ function AppShell() {
   const judgesInspect = useInspectable("nav.judges");
   const resultsInspect = useInspectable("nav.results");
   const analyticsInspect = useInspectable("nav.analytics");
+  const inspectToggleInspect = useInspectable("nav.inspect-toggle");
 
   return (
     <div className="shell">
@@ -62,6 +63,7 @@ function AppShell() {
             title={inspectMode.enabled ? "Disable source inspect mode" : "Enable source inspect mode"}
             aria-pressed={inspectMode.enabled}
             onClick={() => inspectMode.setEnabled(!inspectMode.enabled)}
+            {...inspectToggleInspect}
           >
             <span className="inspect-toggle-track">
               <span className="inspect-toggle-thumb" />

@@ -41,6 +41,9 @@ export function QueuesPage() {
   const [importSummary, setImportSummary] = useState<string | null>(null);
   const addJsonInspect = useInspectable("queues.add-json-entry");
   const importBatchInspect = useInspectable("queues.import-staged-batch");
+  const removeEntryInspect = useInspectable("queues.remove-entry");
+  const stagedAttachmentsInspect = useInspectable("queues.staged-add-attachments");
+  const openQueueInspect = useInspectable("queues.open-queue");
 
   /**
    * Loads queue summaries for the list shown below the import workspace.
@@ -271,7 +274,7 @@ export function QueuesPage() {
                       {entry.detectedQueueIds.join(", ") || "none"}
                     </div>
                   </div>
-                  <button type="button" className="button" onClick={() => removeEntry(entry.id)}>
+                  <button type="button" className="button" onClick={() => removeEntry(entry.id)} {...removeEntryInspect}>
                     Remove
                   </button>
                 </div>
@@ -337,7 +340,7 @@ export function QueuesPage() {
                     </label>
                   )}
 
-                  <label className="button">
+                  <label className="button" {...stagedAttachmentsInspect}>
                     {entry.attachments.length > 0
                       ? `${entry.attachments.length} attachment${entry.attachments.length === 1 ? "" : "s"} selected`
                       : "Add attachments"}
@@ -415,7 +418,7 @@ export function QueuesPage() {
                 {queues.map((queue) => (
                   <tr key={queue.id}>
                     <td>
-                      <Link to={`/queues/${queue.id}`}>{queue.id}</Link>
+                      <Link to={`/queues/${queue.id}`} {...openQueueInspect}>{queue.id}</Link>
                       <div className="table-subtext">{queue.sourceFileName ?? "Imported source"}</div>
                     </td>
                     <td>{queue.submissionCount}</td>

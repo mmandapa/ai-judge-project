@@ -21,6 +21,7 @@ import { useSearchParams } from "react-router-dom";
 import type { AnalyticsResponse } from "../../shared/types";
 import { Card } from "../components/Card";
 import { MultiSelectChips } from "../components/MultiSelectChips";
+import { useInspectMode } from "../inspect/InspectModeContext";
 import { useInspectable } from "../inspect/useInspectable";
 import { api } from "../lib/api";
 
@@ -102,6 +103,7 @@ function toRange(searchParams: URLSearchParams) {
  * Loads analytics data, keeps filters in the URL, and renders the dashboard.
  */
 export function AnalyticsPage() {
+  const inspectMode = useInspectMode();
   const [searchParams, setSearchParams] = useSearchParams();
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,8 +113,29 @@ export function AnalyticsPage() {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const lastTriggerRef = useRef<HTMLElement | null>(null);
+  const chartPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
   const queueFilterInspect = useInspectable("analytics.queue-filter");
   const timePresetInspect = useInspectable("analytics.time-preset");
+  const closeInspect = useInspectable("analytics.close-expanded");
+
+  function rememberChartPointer(event: React.MouseEvent<HTMLDivElement>) {
+    chartPointerRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+  }
+
+  function showChartInspect(id: string) {
+    if (!inspectMode.enabled || !chartPointerRef.current) {
+      return;
+    }
+
+    inspectMode.showEntryAtPoint(id, chartPointerRef.current);
+  }
+
+  function clearChartInspect(id: string) {
+    inspectMode.clearEntry(id);
+  }
 
   const filters = useMemo(() => {
     const range = toRange(searchParams);
@@ -286,7 +309,7 @@ export function AnalyticsPage() {
 
   const renderJudgeChart = (expanded = false) =>
     analytics && analytics.charts.passRateByJudge.length > 0 ? (
-      <div className={`chart-wrap ${expanded ? "chart-wrap-expanded" : ""}`}>
+      <div className={`chart-wrap ${expanded ? "chart-wrap-expanded" : ""}`} onMouseMove={rememberChartPointer}>
         <ResponsiveContainer width="100%" height={expanded ? 460 : 320}>
           <BarChart data={analytics.charts.passRateByJudge}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -300,6 +323,8 @@ export function AnalyticsPage() {
               fill="#166c4a"
               radius={[12, 12, 0, 0]}
               animationDuration={700}
+              onMouseEnter={() => showChartInspect("analytics.chart-judge-bar")}
+              onMouseLeave={() => clearChartInspect("analytics.chart-judge-bar")}
               onClick={(datum) =>
                 updateSearch({
                   judgeIds: filters.judgeIds[0] === datum.judgeId && filters.judgeIds.length === 1 ? [] : [datum.judgeId],
@@ -335,7 +360,7 @@ export function AnalyticsPage() {
 
   const renderVerdictChart = (expanded = false) =>
     analytics && !analytics.charts.verdictDistribution.every((datum) => datum.count === 0) ? (
-      <div className={`chart-wrap ${expanded ? "chart-wrap-expanded" : ""}`}>
+      <div className={`chart-wrap ${expanded ? "chart-wrap-expanded" : ""}`} onMouseMove={rememberChartPointer}>
         <ResponsiveContainer width="100%" height={expanded ? 460 : 320}>
           <PieChart>
             <Pie
@@ -346,6 +371,8 @@ export function AnalyticsPage() {
               outerRadius={expanded ? 145 : 110}
               paddingAngle={4}
               animationDuration={700}
+              onMouseEnter={() => showChartInspect("analytics.chart-verdict-slice")}
+              onMouseLeave={() => clearChartInspect("analytics.chart-verdict-slice")}
               onClick={(datum) =>
                 updateSearch({
                   verdicts: filters.verdicts[0] === datum.verdict && filters.verdicts.length === 1 ? [] : [datum.verdict],
@@ -367,7 +394,7 @@ export function AnalyticsPage() {
 
   const renderQuestionChart = (expanded = false) =>
     analytics && analytics.charts.passRateByQuestion.length > 0 ? (
-      <div className={`chart-wrap ${expanded ? "chart-wrap-expanded" : ""}`}>
+      <div className={`chart-wrap ${expanded ? "chart-wrap-expanded" : ""}`} onMouseMove={rememberChartPointer}>
         <ResponsiveContainer width="100%" height={expanded ? 520 : 360}>
           <BarChart layout="vertical" data={expanded ? analytics.charts.passRateByQuestion : analytics.charts.passRateByQuestion.slice(0, 8)}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -380,6 +407,8 @@ export function AnalyticsPage() {
               fill="#40698a"
               radius={[0, 12, 12, 0]}
               animationDuration={700}
+              onMouseEnter={() => showChartInspect("analytics.chart-question-bar")}
+              onMouseLeave={() => clearChartInspect("analytics.chart-question-bar")}
               onClick={(datum) =>
                 updateSearch({
                   questionTemplateIds:
@@ -588,7 +617,7 @@ export function AnalyticsPage() {
                 <h2 id="analytics-modal-title">{chartMeta[expandedChart].title}</h2>
                 <p className="table-subtext">{chartMeta[expandedChart].subtitle}</p>
               </div>
-              <button ref={closeButtonRef} type="button" className="button" onClick={() => setExpandedChart(null)}>
+              <button ref={closeButtonRef} type="button" className="button" onClick={() => setExpandedChart(null)} {...closeInspect}>
                 Close
               </button>
             </div>

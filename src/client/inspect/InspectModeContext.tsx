@@ -1,10 +1,19 @@
 import { createContext, useContext } from "react";
 import type { InspectEntry } from "./types";
 
+export type InspectRect = {
+  top: number;
+  left: number;
+  bottom: number;
+  right: number;
+  width: number;
+  height: number;
+};
+
 export type InspectAnchor = {
   id: string;
   entry: InspectEntry;
-  rect: DOMRect;
+  rect: InspectRect;
 };
 
 export type InspectModeValue = {
@@ -12,6 +21,7 @@ export type InspectModeValue = {
   active: InspectAnchor | null;
   setEnabled: (enabled: boolean) => void;
   showEntry: (id: string, element: HTMLElement) => void;
+  showEntryAtPoint: (id: string, point: { clientX: number; clientY: number }) => void;
   clearEntry: (id: string) => void;
   keepVisible: () => void;
 };

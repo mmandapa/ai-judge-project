@@ -50,6 +50,11 @@ export function QueueDetailPage() {
   const runInspect = useInspectable("queue.run-queue");
   const judgesInspect = useInspectable("queue.create-or-edit-judges");
   const appendInspect = useInspectable("queue.append-submissions");
+  const resultsInspect = useInspectable("queue.view-results");
+  const affectedQueueInspect = useInspectable("queue.open-affected-queue");
+  const chooseJsonInspect = useInspectable("queue.choose-json");
+  const addAttachmentsInspect = useInspectable("queue.add-attachments");
+  const selectAllInspect = useInspectable("queue.select-all-questions");
 
   /**
    * Loads the queue setup data and reusable judge list.
@@ -363,7 +368,7 @@ export function QueueDetailPage() {
           <Link className="button" to={`/judges?returnTo=${encodeURIComponent(`/queues/${detail.queue.id}`)}`} {...judgesInspect}>
             Create or edit judges
           </Link>
-          <Link to="/results">View results</Link>
+          <Link to="/results" {...resultsInspect}>View results</Link>
         </div>
         {affectedQueues.length > 0 ? (
           <div className="preview-block">
@@ -373,7 +378,7 @@ export function QueueDetailPage() {
             </p>
             <div className="actions">
               {affectedQueues.map((affectedQueueId) => (
-                <Link key={affectedQueueId} className="button" to={`/queues/${affectedQueueId}`}>
+                <Link key={affectedQueueId} className="button" to={`/queues/${affectedQueueId}`} {...affectedQueueInspect}>
                   {affectedQueueId}
                 </Link>
               ))}
@@ -398,11 +403,11 @@ export function QueueDetailPage() {
             it will be added to <strong>{queueId}</strong> here.
           </p>
           <div className="actions">
-            <label className="button">
+            <label className="button" {...chooseJsonInspect}>
               {appendJsonFile ? `JSON selected: ${appendJsonFile.name}` : "Choose JSON"}
               <input type="file" accept="application/json" hidden disabled={appending} onChange={handleAppendJsonChange} />
             </label>
-            <label className="button">
+            <label className="button" {...addAttachmentsInspect}>
               {appendPendingAttachments.length > 0
                 ? `${appendPendingAttachments.length} attachment${appendPendingAttachments.length === 1 ? "" : "s"} selected`
                 : "Add attachments"}
@@ -583,6 +588,7 @@ export function QueueDetailPage() {
             type="button"
             className="button"
             onClick={() => setSelectedQuestionIds(detail.questions.map((question) => question.questionTemplateId))}
+            {...selectAllInspect}
           >
             Select all
           </button>

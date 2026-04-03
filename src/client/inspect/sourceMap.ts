@@ -43,6 +43,16 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/App.tsx"), line: 48, text: "Route table lazy-loads the analytics page." },
     ],
   },
+  "nav.inspect-toggle": {
+    id: "nav.inspect-toggle",
+    label: "Inspect mode toggle",
+    summary: "Enables or disables source-inspect hover mode across the app.",
+    references: [
+      { kind: "frontend", file: file("src/client/App.tsx"), line: 32, text: "App shell reads inspect mode state from the provider." },
+      { kind: "frontend", file: file("src/client/App.tsx"), line: 58, text: "Navbar toggle flips inspect mode on and off." },
+      { kind: "frontend", file: file("src/client/inspect/InspectModeProvider.tsx"), line: 34, text: "Provider persists and clears the active inspect state." },
+    ],
+  },
   "queues.add-json-entry": {
     id: "queues.add-json-entry",
     label: "Add JSON entry",
@@ -63,6 +73,33 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 155, text: "Client API posts the staged import batch to the backend." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 125, text: "Express route receives and validates staged batch imports." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 355, text: "Attachment metadata insert persists uploaded files for imported submissions." },
+    ],
+  },
+  "queues.remove-entry": {
+    id: "queues.remove-entry",
+    label: "Remove staged entry",
+    summary: "Removes one staged import entry from the batch workspace.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/QueuesPage.tsx"), line: 123, text: "removeEntry updates local staged-import state." },
+      { kind: "frontend", file: file("src/client/pages/QueuesPage.tsx"), line: 274, text: "Button removes the current staged entry card." },
+    ],
+  },
+  "queues.staged-add-attachments": {
+    id: "queues.staged-add-attachments",
+    label: "Stage attachments",
+    summary: "Opens the attachment picker for a staged import entry.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/QueuesPage.tsx"), line: 141, text: "Attachment selection appends files into the staged entry state." },
+      { kind: "frontend", file: file("src/client/pages/QueuesPage.tsx"), line: 340, text: "Button-styled label opens the hidden attachment input." },
+    ],
+  },
+  "queues.open-queue": {
+    id: "queues.open-queue",
+    label: "Open queue",
+    summary: "Navigates from the queue table into queue setup for a specific queue.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/QueuesPage.tsx"), line: 418, text: "Queue row link navigates to that queue’s detail page." },
+      { kind: "frontend", file: file("src/client/App.tsx"), line: 76, text: "Route table mounts the queue detail page for '/queues/:queueId'." },
     ],
   },
   "queue.save-setup": {
@@ -110,6 +147,51 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "db", file: file("src/server/lib/database.ts"), line: 234, text: "Queue detail persistence depends on the queue data load path." },
     ],
   },
+  "queue.view-results": {
+    id: "queue.view-results",
+    label: "View results",
+    summary: "Navigates from queue setup into the evaluation results page.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 366, text: "Link jumps from queue setup to the shared results page." },
+      { kind: "frontend", file: file("src/client/App.tsx"), line: 78, text: "Route table mounts the results page for '/results'." },
+    ],
+  },
+  "queue.open-affected-queue": {
+    id: "queue.open-affected-queue",
+    label: "Open affected queue",
+    summary: "Navigates to another queue updated by the same import batch.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 375, text: "Affected-queue links let the user jump to other updated queues." },
+      { kind: "frontend", file: file("src/client/App.tsx"), line: 76, text: "Route table mounts the queue detail page for '/queues/:queueId'." },
+    ],
+  },
+  "queue.choose-json": {
+    id: "queue.choose-json",
+    label: "Choose queue JSON",
+    summary: "Opens the JSON picker for appending more submissions into the current queue.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 186, text: "JSON file selection parses and normalizes append submissions." },
+      { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 401, text: "Button-styled label opens the hidden queue JSON input." },
+      { kind: "shared", file: file("src/shared/parser.ts"), line: 26, text: "Shared parser validates and normalizes imported submission JSON." },
+    ],
+  },
+  "queue.add-attachments": {
+    id: "queue.add-attachments",
+    label: "Add queue attachments",
+    summary: "Opens the attachment picker for files that will be mapped to appended submissions.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 214, text: "Attachment selection adds pending files to the append workflow." },
+      { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 405, text: "Button-styled label opens the hidden attachment input." },
+    ],
+  },
+  "queue.select-all-questions": {
+    id: "queue.select-all-questions",
+    label: "Select all questions",
+    summary: "Marks every question as selected for the next queue run.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 582, text: "Button selects every question template for the next run." },
+    ],
+  },
   "judges.back-to-queue": {
     id: "judges.back-to-queue",
     label: "Back to queue setup",
@@ -152,6 +234,15 @@ export const inspectEntries: Record<string, InspectEntry> = {
     summary: "Loads a saved judge into the edit form.",
     references: [
       { kind: "frontend", file: file("src/client/pages/JudgesPage.tsx"), line: 185, text: "Judge card click hydrates the edit form from saved data." },
+    ],
+  },
+  "judges.reset": {
+    id: "judges.reset",
+    label: "Reset judge form",
+    summary: "Clears the current judge edit form back to the default empty state.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/JudgesPage.tsx"), line: 168, text: "Reset button restores the blank judge form state." },
+      { kind: "frontend", file: file("src/client/pages/JudgesPage.tsx"), line: 22, text: "emptyForm defines the default cleared judge form values." },
     ],
   },
   "results.filter-judges": {
@@ -274,6 +365,42 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates analytics for the active filter set." },
     ],
   },
+  "analytics.chart-judge-bar": {
+    id: "analytics.chart-judge-bar",
+    label: "Judge chart bar",
+    summary: "Filters analytics to one judge from the pass-rate bar chart.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 288, text: "Judge bar chart renders pass-rate data by judge." },
+      { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 302, text: "Bar click toggles the selected judge filter." },
+      { kind: "api", file: file("src/client/lib/api.ts"), line: 100, text: "Client API encodes analytics filters into the query string." },
+      { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Analytics route serves data for the active filters." },
+      { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates judge-level analytics." },
+    ],
+  },
+  "analytics.chart-verdict-slice": {
+    id: "analytics.chart-verdict-slice",
+    label: "Verdict chart slice",
+    summary: "Filters analytics to one verdict from the verdict distribution chart.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 338, text: "Verdict pie chart renders the current verdict distribution." },
+      { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 348, text: "Slice click toggles the selected verdict filter." },
+      { kind: "api", file: file("src/client/lib/api.ts"), line: 100, text: "Client API encodes analytics filters into the query string." },
+      { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Analytics route serves data for the active filters." },
+      { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates verdict analytics." },
+    ],
+  },
+  "analytics.chart-question-bar": {
+    id: "analytics.chart-question-bar",
+    label: "Question chart bar",
+    summary: "Filters analytics to one question from the question pass-rate chart.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 370, text: "Question bar chart renders pass-rate data by question." },
+      { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 381, text: "Bar click toggles the selected question filter." },
+      { kind: "api", file: file("src/client/lib/api.ts"), line: 100, text: "Client API encodes analytics filters into the query string." },
+      { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Analytics route serves data for the active filters." },
+      { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates question-level analytics." },
+    ],
+  },
   "analytics.expand-chart": {
     id: "analytics.expand-chart",
     label: "Expand analytics chart",
@@ -281,6 +408,15 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 279, text: "openExpanded stores the selected chart and focus target." },
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 524, text: "Chart card expand buttons open the larger chart modal." },
+    ],
+  },
+  "analytics.close-expanded": {
+    id: "analytics.close-expanded",
+    label: "Close expanded chart",
+    summary: "Closes the expanded analytics chart modal and returns focus to the prior trigger.",
+    references: [
+      { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 591, text: "Close button dismisses the expanded analytics modal." },
+      { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 227, text: "Modal effect restores focus to the last trigger after closing." },
     ],
   },
 };

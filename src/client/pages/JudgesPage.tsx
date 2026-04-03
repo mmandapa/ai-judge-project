@@ -44,6 +44,7 @@ export function JudgesPage() {
   const saveInspect = useInspectable("judges.save");
   const deleteInspect = useInspectable("judges.delete");
   const selectJudgeInspect = useInspectable("judges.select-card");
+  const resetInspect = useInspectable("judges.reset");
 
   /**
    * Loads the current judge list from the backend.
@@ -165,7 +166,7 @@ export function JudgesPage() {
               {saving ? "Saving..." : form.id ? "Update judge" : "Create judge"}
             </button>
             {form.id ? (
-              <button type="button" className="button" onClick={() => setForm(emptyForm)}>
+              <button type="button" className="button" onClick={() => setForm(emptyForm)} {...resetInspect}>
                 Reset
               </button>
             ) : null}

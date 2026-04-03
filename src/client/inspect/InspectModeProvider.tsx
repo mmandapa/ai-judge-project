@@ -4,6 +4,18 @@ import { getInspectEntry } from "./sourceMap";
 
 const STORAGE_KEY = "ai-judge.inspect-mode";
 const HIDE_DELAY_MS = 120;
+const VIRTUAL_ANCHOR_SIZE = 12;
+
+function toInspectRect(rect: DOMRect | { top: number; left: number; bottom: number; right: number; width: number; height: number }) {
+  return {
+    top: rect.top,
+    left: rect.left,
+    bottom: rect.bottom,
+    right: rect.right,
+    width: rect.width,
+    height: rect.height,
+  };
+}
 
 export function InspectModeProvider(props: { children: ReactNode }) {
   const [enabled, setEnabledState] = useState(false);
@@ -56,7 +68,32 @@ export function InspectModeProvider(props: { children: ReactNode }) {
     setActive({
       id,
       entry,
-      rect: element.getBoundingClientRect(),
+      rect: toInspectRect(element.getBoundingClientRect()),
+    });
+  }
+
+  function showEntryAtPoint(id: string, point: { clientX: number; clientY: number }) {
+    if (!enabled) {
+      return;
+    }
+
+    const entry = getInspectEntry(id);
+    if (!entry) {
+      return;
+    }
+
+    clearHideTimer();
+    setActive({
+      id,
+      entry,
+      rect: {
+        top: point.clientY - VIRTUAL_ANCHOR_SIZE / 2,
+        left: point.clientX - VIRTUAL_ANCHOR_SIZE / 2,
+        bottom: point.clientY + VIRTUAL_ANCHOR_SIZE / 2,
+        right: point.clientX + VIRTUAL_ANCHOR_SIZE / 2,
+        width: VIRTUAL_ANCHOR_SIZE,
+        height: VIRTUAL_ANCHOR_SIZE,
+      },
     });
   }
 
@@ -82,6 +119,7 @@ export function InspectModeProvider(props: { children: ReactNode }) {
       active,
       setEnabled,
       showEntry,
+      showEntryAtPoint,
       clearEntry,
       keepVisible,
     }),
