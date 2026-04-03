@@ -9,6 +9,13 @@ const KIND_LABELS = {
   shared: "Shared",
 } as const;
 
+const SCHEMA_LABELS = {
+  read: "Read",
+  write: "Write",
+  rpc: "RPC",
+  related: "Related",
+} as const;
+
 function buildEditorHref(file: string, line: number) {
   return `cursor://file${file}:${line}:1`;
 }
@@ -63,6 +70,25 @@ export function InspectTooltip() {
           </a>
         ))}
       </div>
+      {active.entry.schema?.length ? (
+        <div className="inspect-schema">
+          <strong className="inspect-section-title">Schema</strong>
+          <div className="inspect-schema-list">
+            {active.entry.schema.map((schemaEntry) => (
+              <div key={`${schemaEntry.table}-${schemaEntry.operation ?? "default"}`} className="inspect-schema-row">
+                <div className="inspect-schema-header">
+                  <span className="inspect-schema-table">{schemaEntry.table}</span>
+                  {schemaEntry.operation ? (
+                    <span className="inspect-schema-operation">{SCHEMA_LABELS[schemaEntry.operation]}</span>
+                  ) : null}
+                </div>
+                <div className="inspect-schema-columns">{schemaEntry.columns.join(", ")}</div>
+                {schemaEntry.note ? <div className="inspect-schema-note">{schemaEntry.note}</div> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </aside>
   );
 }

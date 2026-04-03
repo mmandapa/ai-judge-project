@@ -331,6 +331,11 @@ td {
   gap: 0.55rem;
 }
 
+.inspect-section-title {
+  display: block;
+  margin-bottom: 0.45rem;
+}
+
 .inspect-reference {
   display: grid;
   gap: 0.2rem;
@@ -360,6 +365,50 @@ td {
   font-size: 0.78rem;
   color: #5b6775;
   word-break: break-all;
+}
+
+.inspect-schema {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.inspect-schema-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.inspect-schema-row {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.75rem 0.8rem;
+  border-radius: 14px;
+  background: rgba(24, 34, 47, 0.04);
+}
+
+.inspect-schema-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.inspect-schema-table {
+  font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+  font-size: 0.82rem;
+}
+
+.inspect-schema-operation {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7d5c3d;
+}
+
+.inspect-schema-columns,
+.inspect-schema-note {
+  font-size: 0.82rem;
+  color: #5b6775;
+  word-break: break-word;
 }
 
 .assignment-row {

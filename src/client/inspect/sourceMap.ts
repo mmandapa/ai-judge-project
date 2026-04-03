@@ -74,6 +74,13 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 125, text: "Express route receives and validates staged batch imports." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 355, text: "Attachment metadata insert persists uploaded files for imported submissions." },
     ],
+    schema: [
+      { table: "queues", operation: "write", columns: ["id", "source_file_name"], note: "Queue records are upserted during import." },
+      { table: "submissions", operation: "write", columns: ["id", "queue_id", "labeling_task_id", "created_at_source", "has_attachments"] },
+      { table: "submission_questions", operation: "write", columns: ["submission_id", "question_template_id", "rev", "question_type", "question_text", "original_payload"] },
+      { table: "submission_answers", operation: "write", columns: ["submission_id", "question_template_id", "answer_payload"] },
+      { table: "submission_attachments", operation: "related", columns: ["submission_id", "file_name", "storage_path", "mime_type", "file_size"] },
+    ],
   },
   "queues.remove-entry": {
     id: "queues.remove-entry",
@@ -139,6 +146,13 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 238, text: "Queues route returns queue summaries for the page." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 218, text: "Database layer loads queue summary rows." },
     ],
+    schema: [
+      { table: "list_queue_summaries", operation: "rpc", columns: ["id", "source_file_name", "submission_count", "distinct_question_count", "assignment_count", "last_run_at"], note: "Queue list is sourced from this RPC output." },
+      { table: "queues", operation: "related", columns: ["id", "source_file_name"] },
+      { table: "submissions", operation: "related", columns: ["id", "queue_id", "created_at_source"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id"] },
+      { table: "evaluation_runs", operation: "related", columns: ["queue_id", "status", "planned_count", "completed_count", "failed_count", "started_at", "finished_at"] },
+    ],
   },
   "queues.queues-table": {
     id: "queues.queues-table",
@@ -149,6 +163,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 51, text: "Client API fetches queue summaries from the backend." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 238, text: "Queues route returns queue summaries for the page." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 218, text: "Database layer loads queue summary rows." },
+    ],
+    schema: [
+      { table: "list_queue_summaries", operation: "rpc", columns: ["id", "source_file_name", "submission_count", "distinct_question_count", "assignment_count", "last_run_at"] },
+      { table: "queues", operation: "related", columns: ["id", "source_file_name"] },
+      { table: "submissions", operation: "related", columns: ["id", "queue_id"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id"] },
     ],
   },
   "queue.save-setup": {
@@ -162,6 +182,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 254, text: "Express route validates and stores queue assignments." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 488, text: "Database layer replaces judge assignments for the queue." },
     ],
+    schema: [
+      { table: "judge_assignments", operation: "write", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+      { table: "judges", operation: "related", columns: ["id", "name", "provider", "model", "active"] },
+    ],
   },
   "queue.run-queue": {
     id: "queue.run-queue",
@@ -173,6 +198,16 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 79, text: "Client API posts the queue run request." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 264, text: "Express route calls the evaluation runner for the queue." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 553, text: "Database layer loads run context and related submissions." },
+    ],
+    schema: [
+      { table: "evaluation_runs", operation: "write", columns: ["id", "queue_id", "status", "planned_count", "completed_count", "failed_count", "started_at", "finished_at"] },
+      { table: "evaluations", operation: "write", columns: ["run_id", "queue_id", "submission_id", "question_template_id", "judge_id", "provider", "model", "verdict", "reasoning", "raw_response", "status", "error_message", "attachments_used"] },
+      { table: "judge_assignments", operation: "read", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "submission_questions", operation: "read", columns: ["submission_id", "question_template_id", "question_text", "question_type"] },
+      { table: "submission_answers", operation: "read", columns: ["submission_id", "question_template_id", "answer_payload"] },
+      { table: "submission_attachments", operation: "read", columns: ["id", "submission_id", "file_name", "storage_path", "mime_type", "file_size", "created_at"] },
+      { table: "submissions", operation: "read", columns: ["id", "queue_id", "labeling_task_id"] },
+      { table: "judges", operation: "read", columns: ["id", "name", "rubric_prompt", "provider", "model", "active"] },
     ],
   },
   "queue.create-or-edit-judges": {
@@ -194,6 +229,13 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 160, text: "Client API uploads the queue JSON append request." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 155, text: "Express route appends submissions into an existing queue." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 234, text: "Queue detail persistence depends on the queue data load path." },
+    ],
+    schema: [
+      { table: "queues", operation: "write", columns: ["id", "source_file_name"] },
+      { table: "submissions", operation: "write", columns: ["id", "queue_id", "labeling_task_id", "created_at_source", "has_attachments"] },
+      { table: "submission_questions", operation: "write", columns: ["submission_id", "question_template_id", "rev", "question_type", "question_text", "original_payload"] },
+      { table: "submission_answers", operation: "write", columns: ["submission_id", "question_template_id", "answer_payload"] },
+      { table: "submission_attachments", operation: "related", columns: ["submission_id", "file_name", "storage_path", "mime_type", "file_size"] },
     ],
   },
   "queue.view-results": {
@@ -240,6 +282,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 582, text: "Button selects every question template for the next run." },
     ],
+    schema: [
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id", "question_text", "question_type"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "evaluation_runs", operation: "related", columns: ["id", "queue_id", "status", "planned_count", "completed_count", "failed_count"] },
+      { table: "evaluations", operation: "related", columns: ["run_id", "queue_id", "submission_id", "question_template_id", "judge_id", "verdict", "status"] },
+    ],
   },
   "queue.summary-card": {
     id: "queue.summary-card",
@@ -251,6 +299,14 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 246, text: "Queue detail route returns the data for one queue." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 234, text: "Database layer assembles queue detail data." },
     ],
+    schema: [
+      { table: "queues", operation: "read", columns: ["id", "source_file_name"] },
+      { table: "submissions", operation: "read", columns: ["id", "queue_id", "created_at_source", "labeling_task_id", "has_attachments"] },
+      { table: "submission_questions", operation: "read", columns: ["submission_id", "question_template_id", "question_text", "question_type"] },
+      { table: "submission_answers", operation: "read", columns: ["submission_id", "question_template_id", "answer_payload"] },
+      { table: "submission_attachments", operation: "read", columns: ["id", "submission_id", "file_name", "storage_path", "mime_type", "file_size", "created_at"] },
+      { table: "judge_assignments", operation: "read", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+    ],
   },
   "queue.summary-stats": {
     id: "queue.summary-stats",
@@ -259,6 +315,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 349, text: "Stats block renders queue totals inside the summary card." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 280, text: "Queue detail data includes the summary counts rendered here." },
+    ],
+    schema: [
+      { table: "queues", operation: "read", columns: ["id", "source_file_name"] },
+      { table: "submissions", operation: "related", columns: ["id", "queue_id"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id"] },
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id"] },
     ],
   },
   "queue.step-add-submissions": {
@@ -269,6 +331,13 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 392, text: "Add submissions card renders append controls and previews." },
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 238, text: "Append handler imports the queue JSON and uploads mapped attachments." },
     ],
+    schema: [
+      { table: "queues", operation: "related", columns: ["id", "source_file_name"] },
+      { table: "submissions", operation: "related", columns: ["id", "queue_id", "labeling_task_id", "created_at_source", "has_attachments"] },
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id", "rev", "question_type", "question_text", "original_payload"] },
+      { table: "submission_answers", operation: "related", columns: ["submission_id", "question_template_id", "answer_payload"] },
+      { table: "submission_attachments", operation: "related", columns: ["submission_id", "file_name", "storage_path", "mime_type", "file_size"] },
+    ],
   },
   "queue.append-preview": {
     id: "queue.append-preview",
@@ -277,6 +346,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 425, text: "Preview block renders the submissions selected for append." },
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 422, text: "Preview content is derived from parsed append submission options." },
+    ],
+    schema: [
+      { table: "submissions", operation: "related", columns: ["id", "queue_id", "labeling_task_id", "created_at_source", "has_attachments"] },
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id", "question_text", "question_type"] },
+      { table: "submission_answers", operation: "related", columns: ["submission_id", "question_template_id", "answer_payload"] },
+      { table: "submission_attachments", operation: "related", columns: ["submission_id", "file_name", "storage_path", "mime_type", "file_size"] },
     ],
   },
   "queue.step-assign-judges": {
@@ -289,6 +364,14 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 246, text: "Queue detail route returns the data for this setup step." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 234, text: "Database layer assembles queue questions, assignments, and sample submissions." },
     ],
+    schema: [
+      { table: "judge_assignments", operation: "read", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "judges", operation: "related", columns: ["id", "name", "rubric_prompt", "provider", "model", "active"] },
+      { table: "submission_questions", operation: "read", columns: ["submission_id", "question_template_id", "question_text", "question_type"] },
+      { table: "submission_answers", operation: "read", columns: ["submission_id", "question_template_id", "answer_payload"] },
+      { table: "submission_attachments", operation: "related", columns: ["submission_id", "file_name", "storage_path", "mime_type", "file_size"] },
+      { table: "submissions", operation: "related", columns: ["id", "queue_id", "labeling_task_id", "has_attachments"] },
+    ],
   },
   "queue.question-setup-card": {
     id: "queue.question-setup-card",
@@ -297,6 +380,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 479, text: "Question setup card renders one question and its assignment controls." },
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 106, text: "Draft assignment state powers the question-level setup UI." },
+    ],
+    schema: [
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id", "question_text", "question_type"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "judges", operation: "related", columns: ["id", "name", "rubric_prompt", "provider", "model", "active"] },
+      { table: "submission_answers", operation: "related", columns: ["submission_id", "question_template_id", "answer_payload"] },
     ],
   },
   "queue.assign-judge": {
@@ -307,6 +396,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 115, text: "setSelectedJudges updates the selected judges for one question." },
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 488, text: "Judge chips render inside the question setup card." },
     ],
+    schema: [
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "judges", operation: "related", columns: ["id", "name", "rubric_prompt", "provider", "model", "active"] },
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id", "question_text"] },
+    ],
   },
   "queue.assignment-config-card": {
     id: "queue.assignment-config-card",
@@ -316,6 +410,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 517, text: "Assignment config card renders one judge-specific prompt configuration." },
       { kind: "frontend", file: file("src/client/lib/api.ts"), line: 194, text: "Prompt preview builder derives the preview shown for each assignment." },
     ],
+    schema: [
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "judges", operation: "related", columns: ["id", "name", "rubric_prompt", "provider", "model", "active"] },
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id", "question_text"] },
+      { table: "submission_answers", operation: "related", columns: ["submission_id", "question_template_id", "answer_payload"] },
+    ],
   },
   "queue.toggle-prompt-field": {
     id: "queue.toggle-prompt-field",
@@ -324,6 +424,10 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 168, text: "updatePromptField mutates one prompt field in draft assignment state." },
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 530, text: "Toggle rows render the prompt field checkboxes for each assignment." },
+    ],
+    schema: [
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "judges", operation: "related", columns: ["id", "name", "provider", "model"] },
     ],
   },
   "queue.prompt-preview": {
@@ -335,6 +439,13 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/lib/api.ts"), line: 194, text: "Prompt preview builder derives the preview payload shown here." },
       { kind: "shared", file: file("src/shared/prompt.ts"), line: 73, text: "Shared prompt builder assembles the preview text for the assignment." },
     ],
+    schema: [
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "judges", operation: "related", columns: ["id", "name", "rubric_prompt", "provider", "model"] },
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id", "question_text", "question_type"] },
+      { table: "submission_answers", operation: "related", columns: ["submission_id", "question_template_id", "answer_payload"] },
+      { table: "submission_attachments", operation: "related", columns: ["submission_id", "file_name", "storage_path", "mime_type"] },
+    ],
   },
   "queue.step-run-questions": {
     id: "queue.step-run-questions",
@@ -344,6 +455,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 584, text: "Run-questions card renders the selection controls for the next queue run." },
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 42, text: "Selected question ids are tracked locally for the next run only." },
     ],
+    schema: [
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id", "question_text", "question_type"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "evaluation_runs", operation: "related", columns: ["id", "queue_id", "status", "planned_count", "completed_count", "failed_count"] },
+      { table: "evaluations", operation: "related", columns: ["run_id", "queue_id", "submission_id", "question_template_id", "judge_id", "verdict", "status"] },
+    ],
   },
   "queue.toggle-run-question": {
     id: "queue.toggle-run-question",
@@ -352,6 +469,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 596, text: "Run-question rows render the next-run selection controls." },
       { kind: "frontend", file: file("src/client/pages/QueueDetailPage.tsx"), line: 607, text: "Checkbox handler updates selectedQuestionIds for the next run." },
+    ],
+    schema: [
+      { table: "submission_questions", operation: "related", columns: ["submission_id", "question_template_id", "question_text", "question_type"] },
+      { table: "evaluation_runs", operation: "related", columns: ["id", "queue_id", "status", "planned_count", "completed_count", "failed_count"] },
+      { table: "evaluations", operation: "related", columns: ["run_id", "queue_id", "submission_id", "question_template_id", "judge_id", "verdict", "status"] },
     ],
   },
   "judges.back-to-queue": {
@@ -377,6 +499,10 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "db", file: file("src/server/lib/database.ts"), line: 394, text: "Database layer inserts new judge templates." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 420, text: "Database layer updates an existing judge template." },
     ],
+    schema: [
+      { table: "judges", operation: "write", columns: ["id", "name", "rubric_prompt", "provider", "model", "active", "created_at", "updated_at"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+    ],
   },
   "judges.delete": {
     id: "judges.delete",
@@ -389,6 +515,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 301, text: "Express route deletes the judge record." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 452, text: "Database layer removes the judge and cleans up assignments." },
     ],
+    schema: [
+      { table: "judges", operation: "write", columns: ["id", "name", "rubric_prompt", "provider", "model", "active"] },
+      { table: "judge_assignments", operation: "write", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"], note: "Assignments for the deleted judge are removed first." },
+      { table: "evaluations", operation: "related", columns: ["id", "judge_id", "queue_id", "submission_id", "question_template_id", "verdict"] },
+    ],
   },
   "judges.select-card": {
     id: "judges.select-card",
@@ -396,6 +527,10 @@ export const inspectEntries: Record<string, InspectEntry> = {
     summary: "Loads a saved judge into the edit form.",
     references: [
       { kind: "frontend", file: file("src/client/pages/JudgesPage.tsx"), line: 185, text: "Judge card click hydrates the edit form from saved data." },
+    ],
+    schema: [
+      { table: "judges", operation: "related", columns: ["id", "name", "rubric_prompt", "provider", "model", "active", "created_at", "updated_at"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
     ],
   },
   "judges.reset": {
@@ -405,6 +540,10 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/JudgesPage.tsx"), line: 168, text: "Reset button restores the blank judge form state." },
       { kind: "frontend", file: file("src/client/pages/JudgesPage.tsx"), line: 22, text: "emptyForm defines the default cleared judge form values." },
+    ],
+    schema: [
+      { table: "judges", operation: "related", columns: ["id", "name", "rubric_prompt", "provider", "model", "active"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
     ],
   },
   "judges.form-card": {
@@ -416,6 +555,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 53, text: "Judge form actions call the client judge APIs." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 275, text: "Judge routes handle list, create, update, and delete requests." },
     ],
+    schema: [
+      { table: "judges", operation: "related", columns: ["id", "name", "rubric_prompt", "provider", "model", "active", "created_at", "updated_at"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
+      { table: "evaluations", operation: "related", columns: ["id", "judge_id", "queue_id", "submission_id", "question_template_id", "verdict"] },
+    ],
   },
   "judges.saved-list-card": {
     id: "judges.saved-list-card",
@@ -426,6 +570,10 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 53, text: "Client API loads saved judge records." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 275, text: "Judges route returns the saved judge list." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 385, text: "Database layer loads the saved judge templates." },
+    ],
+    schema: [
+      { table: "judges", operation: "read", columns: ["id", "name", "rubric_prompt", "provider", "model", "active", "created_at", "updated_at"] },
+      { table: "judge_assignments", operation: "related", columns: ["queue_id", "question_template_id", "judge_id", "prompt_field_config"] },
     ],
   },
   "results.filter-judges": {
@@ -439,6 +587,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 309, text: "Express route reads results filters from the query string." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 690, text: "Database layer fetches filtered evaluation rows." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["id", "created_at", "submission_id", "queue_id", "question_template_id", "judge_id", "verdict", "reasoning", "status", "error_message", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "results.filter-questions": {
     id: "results.filter-questions",
@@ -450,6 +604,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 84, text: "Client API encodes the current results filter query string." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 309, text: "Express route reads results filters from the query string." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 690, text: "Database layer fetches filtered evaluation rows." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["id", "question_template_id", "queue_id", "judge_id", "verdict", "status"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "queues", operation: "related", columns: ["id"] },
     ],
   },
   "results.filter-verdicts": {
@@ -463,6 +623,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 309, text: "Express route reads results filters from the query string." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 690, text: "Database layer fetches filtered evaluation rows." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["id", "verdict", "status", "queue_id", "judge_id", "question_template_id"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "results.clear-visible": {
     id: "results.clear-visible",
@@ -474,6 +640,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 124, text: "Client API sends bulk deletion filters." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 369, text: "Express route deletes evaluations matching the active filters." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 730, text: "Database layer deletes evaluation rows by filter set." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "write", columns: ["id", "queue_id", "judge_id", "question_template_id", "verdict"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
     ],
   },
   "results.delete-row": {
@@ -487,6 +659,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 361, text: "Express route deletes one evaluation by id." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 719, text: "Database layer removes a single evaluation row." },
     ],
+    schema: [
+      { table: "evaluations", operation: "write", columns: ["id", "run_id", "queue_id", "submission_id", "question_template_id", "judge_id", "verdict", "reasoning", "status", "error_message", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+    ],
   },
   "results.summary-card": {
     id: "results.summary-card",
@@ -498,6 +675,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 309, text: "Results route returns rows and aggregate filters." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 690, text: "Database layer loads the result dataset used for the summary." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["id", "verdict", "status", "queue_id", "judge_id", "question_template_id", "attachments_used", "created_at"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "results.filters-card": {
     id: "results.filters-card",
@@ -507,6 +690,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/ResultsPage.tsx"), line: 155, text: "Filters card renders the available result filters." },
       { kind: "frontend", file: file("src/client/pages/ResultsPage.tsx"), line: 57, text: "Filter changes reload the result set." },
       { kind: "api", file: file("src/client/lib/api.ts"), line: 84, text: "Client API fetches results for the active filters." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "related", columns: ["id", "created_at", "submission_id", "queue_id", "question_template_id", "judge_id", "verdict", "status", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
     ],
   },
   "results.table-card": {
@@ -519,6 +708,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 309, text: "Results route returns the row-level evaluation dataset." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 690, text: "Database layer loads the evaluations shown in the table." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["id", "created_at", "submission_id", "queue_id", "question_template_id", "judge_id", "verdict", "reasoning", "status", "error_message", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "results.result-row": {
     id: "results.result-row",
@@ -528,6 +723,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/ResultsPage.tsx"), line: 234, text: "ResultRow renders one evaluation record inside the table." },
       { kind: "api", file: file("src/client/lib/api.ts"), line: 84, text: "Rows come from the filtered results API response." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 690, text: "Database layer loads the evaluation rows rendered here." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["id", "created_at", "submission_id", "queue_id", "question_template_id", "judge_id", "verdict", "reasoning", "status", "error_message", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
     ],
   },
   "analytics.queue-filter": {
@@ -541,6 +741,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Express route serves analytics using the request filters." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer builds the filtered analytics dataset." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["id", "created_at", "queue_id", "judge_id", "question_template_id", "verdict", "status", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "analytics.time-preset": {
     id: "analytics.time-preset",
@@ -552,6 +758,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 443, text: "Preset buttons update the active analytics window." },
       { kind: "api", file: file("src/client/lib/api.ts"), line: 100, text: "Client API sends the chosen analytics date filters." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Express route rebuilds analytics from the active date range." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "related", columns: ["created_at", "queue_id", "judge_id", "question_template_id", "verdict", "status", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
     ],
   },
   "analytics.filter-judges": {
@@ -565,6 +777,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Express route serves filtered analytics data." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates analytics for the active filter set." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["judge_id", "queue_id", "question_template_id", "verdict", "status", "created_at", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "analytics.filter-questions": {
     id: "analytics.filter-questions",
@@ -576,6 +794,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 100, text: "Client API encodes analytics filters into the query string." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Express route serves filtered analytics data." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates analytics for the active filter set." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["question_template_id", "queue_id", "judge_id", "verdict", "status", "created_at", "attachments_used"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "queues", operation: "related", columns: ["id"] },
     ],
   },
   "analytics.filter-verdicts": {
@@ -589,6 +813,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Express route serves filtered analytics data." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates analytics for the active filter set." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["verdict", "status", "queue_id", "judge_id", "question_template_id", "created_at", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "analytics.chart-judge-bar": {
     id: "analytics.chart-judge-bar",
@@ -600,6 +830,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 100, text: "Client API encodes analytics filters into the query string." },
       { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Analytics route serves data for the active filters." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates judge-level analytics." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["judge_id", "verdict", "status", "queue_id", "question_template_id", "created_at"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
     ],
   },
   "analytics.chart-verdict-slice": {
@@ -613,6 +848,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Analytics route serves data for the active filters." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates verdict analytics." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["verdict", "status", "queue_id", "judge_id", "question_template_id", "created_at"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+    ],
   },
   "analytics.chart-question-bar": {
     id: "analytics.chart-question-bar",
@@ -625,6 +865,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Analytics route serves data for the active filters." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer aggregates question-level analytics." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["question_template_id", "verdict", "status", "queue_id", "judge_id", "created_at"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+    ],
   },
   "analytics.expand-chart": {
     id: "analytics.expand-chart",
@@ -634,6 +879,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 279, text: "openExpanded stores the selected chart and focus target." },
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 524, text: "Chart card expand buttons open the larger chart modal." },
     ],
+    schema: [
+      { table: "evaluations", operation: "related", columns: ["id", "created_at", "queue_id", "judge_id", "question_template_id", "verdict", "status", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "analytics.close-expanded": {
     id: "analytics.close-expanded",
@@ -642,6 +893,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 591, text: "Close button dismisses the expanded analytics modal." },
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 227, text: "Modal effect restores focus to the last trigger after closing." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "related", columns: ["id", "created_at", "queue_id", "judge_id", "question_template_id", "verdict", "status", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
     ],
   },
   "analytics.hero-card": {
@@ -654,6 +911,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "route", file: file("src/server/routes/index.ts"), line: 334, text: "Analytics route returns the aggregated dashboard data." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer builds the analytics response shown here." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["id", "created_at", "queue_id", "judge_id", "question_template_id", "verdict", "status", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "analytics.filters-card": {
     id: "analytics.filters-card",
@@ -663,6 +926,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 459, text: "Filters card renders all analytics filtering controls." },
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 133, text: "updateSearch rewrites the dashboard filter state in the URL." },
       { kind: "api", file: file("src/client/lib/api.ts"), line: 100, text: "Client API fetches analytics for the active filters." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "related", columns: ["queue_id", "judge_id", "question_template_id", "verdict", "status", "created_at", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
     ],
   },
   "analytics.overview-section": {
@@ -674,6 +943,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 100, text: "Client API fetches the analytics response that powers this section." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer builds the analytics data shown in this section." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["id", "created_at", "queue_id", "judge_id", "question_template_id", "verdict", "status", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "analytics.kpi-card": {
     id: "analytics.kpi-card",
@@ -682,6 +957,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 637, text: "KpiCard renders one analytics summary metric." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Analytics summary data supplies the metric values shown here." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "related", columns: ["verdict", "status", "attachments_used", "created_at", "queue_id", "judge_id", "question_template_id"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
     ],
   },
   "analytics.breakdowns-section": {
@@ -693,6 +973,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "api", file: file("src/client/lib/api.ts"), line: 100, text: "Client API fetches the analytics response that powers this section." },
       { kind: "db", file: file("src/server/lib/database.ts"), line: 708, text: "Database layer builds the analytics data shown in this section." },
     ],
+    schema: [
+      { table: "evaluations", operation: "read", columns: ["verdict", "status", "question_template_id", "judge_id", "queue_id", "created_at"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "queues", operation: "related", columns: ["id"] },
+    ],
   },
   "analytics.chart-card": {
     id: "analytics.chart-card",
@@ -702,6 +988,11 @@ export const inspectEntries: Record<string, InspectEntry> = {
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 650, text: "AnalyticsChartCard renders one chart container with its copy and controls." },
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 556, text: "Chart cards are used to lay out the analytics sections." },
     ],
+    schema: [
+      { table: "evaluations", operation: "related", columns: ["queue_id", "judge_id", "question_template_id", "verdict", "status", "created_at"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+    ],
   },
   "analytics.expanded-modal": {
     id: "analytics.expanded-modal",
@@ -710,6 +1001,12 @@ export const inspectEntries: Record<string, InspectEntry> = {
     references: [
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 603, text: "Expanded analytics modal renders the selected chart in a dialog." },
       { kind: "frontend", file: file("src/client/pages/AnalyticsPage.tsx"), line: 283, text: "openExpanded selects which chart to render in the modal." },
+    ],
+    schema: [
+      { table: "evaluations", operation: "related", columns: ["id", "created_at", "queue_id", "judge_id", "question_template_id", "verdict", "status", "attachments_used"] },
+      { table: "judges", operation: "related", columns: ["id", "name"] },
+      { table: "submission_questions", operation: "related", columns: ["question_template_id", "question_text"] },
+      { table: "queues", operation: "related", columns: ["id"] },
     ],
   },
 };
