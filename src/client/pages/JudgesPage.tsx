@@ -119,7 +119,7 @@ export function JudgesPage() {
 
   return (
     <div className="grid-two">
-      <Card title={form.id ? "Edit judge" : "New judge"}>
+      <Card title={form.id ? "Edit judge" : "New judge"} inspectId="judges.form-card">
         {returnTo ? (
           <div className="actions">
             <Link className="button" to={returnTo} {...backInspect}>
@@ -180,7 +180,7 @@ export function JudgesPage() {
         </form>
       </Card>
 
-      <Card title="Saved judges">
+      <Card title="Saved judges" inspectId="judges.saved-list-card">
         <p className="table-subtext">
           Judges are reusable templates. Queue-specific prompt field selection now happens during queue setup.
         </p>

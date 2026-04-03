@@ -55,6 +55,14 @@ export function QueueDetailPage() {
   const chooseJsonInspect = useInspectable("queue.choose-json");
   const addAttachmentsInspect = useInspectable("queue.add-attachments");
   const selectAllInspect = useInspectable("queue.select-all-questions");
+  const summaryStatsInspect = useInspectable("queue.summary-stats");
+  const appendPreviewInspect = useInspectable("queue.append-preview");
+  const questionSetupInspect = useInspectable("queue.question-setup-card");
+  const assignJudgeInspect = useInspectable("queue.assign-judge");
+  const assignmentCardInspect = useInspectable("queue.assignment-config-card");
+  const togglePromptFieldInspect = useInspectable("queue.toggle-prompt-field");
+  const promptPreviewInspect = useInspectable("queue.prompt-preview");
+  const runQuestionInspect = useInspectable("queue.toggle-run-question");
 
   /**
    * Loads the queue setup data and reusable judge list.
@@ -335,6 +343,7 @@ export function QueueDetailPage() {
     <div className="stack">
       <Card
         title={`Queue setup: ${detail.queue.id}`}
+        inspectId="queue.summary-card"
         actions={
           <div className="actions">
             <button className="button" onClick={handleSaveAssignments} disabled={savingAssignments} {...saveInspect}>
@@ -346,7 +355,7 @@ export function QueueDetailPage() {
           </div>
         }
       >
-        <div className="stats">
+        <div className="stats" {...summaryStatsInspect}>
           <div>
             <strong>{detail.queue.submissionCount}</strong>
             <span>Submissions</span>
@@ -391,6 +400,7 @@ export function QueueDetailPage() {
 
       <Card
         title="1. Add submissions"
+        inspectId="queue.step-add-submissions"
         actions={
           <button className="button button-primary" onClick={() => void handleAppendSubmissions()} disabled={appending || !canAppend} {...appendInspect}>
             {appending ? "Adding..." : appendJsonFile ? "Add to this queue" : "Choose JSON first"}
@@ -422,7 +432,7 @@ export function QueueDetailPage() {
             </label>
           </div>
           {appendParsedSubmissions.length > 0 ? (
-            <div className="preview-block">
+            <div className="preview-block" {...appendPreviewInspect}>
               <strong>Submissions to append</strong>
               <div className="stack preview-content-list">
                 {appendSubmissionOptions.map((submission) => (
@@ -468,7 +478,7 @@ export function QueueDetailPage() {
         </div>
       </Card>
 
-      <Card title="2. Assign judges and choose prompt fields">
+      <Card title="2. Assign judges and choose prompt fields" inspectId="queue.step-assign-judges">
         <div className="stack">
           {detail.questions.map((question) => {
             const selectedAssignments = draftAssignments[question.questionTemplateId] ?? [];
@@ -476,7 +486,7 @@ export function QueueDetailPage() {
             const sampleSubmission = sampleSubmissionByQuestion.get(question.questionTemplateId);
 
             return (
-              <div className="question-setup-card" key={question.questionTemplateId}>
+              <div className="question-setup-card" key={question.questionTemplateId} {...questionSetupInspect}>
                 <div className="assignment-row">
                   <div>
                     <strong>{question.questionText}</strong>
@@ -489,6 +499,7 @@ export function QueueDetailPage() {
                       options={activeJudgeOptions}
                       selected={selectedJudgeIds}
                       onChange={(next) => setSelectedJudges(question.questionTemplateId, next)}
+                      inspectId="queue.assign-judge"
                     />
                     <div className="table-subtext">
                       Select one or more judges. Prompt fields below are saved per judge assignment for this question.
@@ -514,7 +525,7 @@ export function QueueDetailPage() {
                       });
 
                       return (
-                        <div className="assignment-config-card" key={assignment.judgeId}>
+                        <div className="assignment-config-card" key={assignment.judgeId} {...assignmentCardInspect}>
                           <div className="assignment-config-header">
                             <div>
                               <strong>{judge?.name ?? assignment.judgeId}</strong>
@@ -527,7 +538,7 @@ export function QueueDetailPage() {
                           <div className="assignment-config-grid">
                             <div className="stack">
                               {promptFieldLabels.map((field) => (
-                                <label key={field.key} className="toggle-row">
+                                <label key={field.key} className="toggle-row" {...togglePromptFieldInspect}>
                                   <div>
                                     <strong>{field.label}</strong>
                                     <div className="table-subtext">{field.description}</div>
@@ -548,11 +559,11 @@ export function QueueDetailPage() {
                               ))}
                             </div>
                             <div className="stack">
-                              <div className="preview-block">
+                              <div className="preview-block" {...promptPreviewInspect}>
                                 <strong>Prompt preview</strong>
                                 <pre>{preview.user}</pre>
                               </div>
-                              <div className="preview-block">
+                              <div className="preview-block" {...promptPreviewInspect}>
                                 <strong>System instructions</strong>
                                 <pre>{preview.system}</pre>
                               </div>
@@ -583,6 +594,7 @@ export function QueueDetailPage() {
 
       <Card
         title="3. Choose questions to run"
+        inspectId="queue.step-run-questions"
         actions={
           <button
             type="button"
@@ -599,7 +611,7 @@ export function QueueDetailPage() {
             These checkboxes only affect the next run. Your saved judge assignments and prompt-field setup stay intact.
           </p>
           {detail.questions.map((question) => (
-            <label key={question.questionTemplateId} className="run-question-row">
+            <label key={question.questionTemplateId} className="run-question-row" {...runQuestionInspect}>
               <div>
                 <strong>{question.questionText}</strong>
                 <div className="table-subtext">

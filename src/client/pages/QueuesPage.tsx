@@ -44,6 +44,9 @@ export function QueuesPage() {
   const removeEntryInspect = useInspectable("queues.remove-entry");
   const stagedAttachmentsInspect = useInspectable("queues.staged-add-attachments");
   const openQueueInspect = useInspectable("queues.open-queue");
+  const statsInspect = useInspectable("queues.stage-summary-stats");
+  const stagedEntryCardInspect = useInspectable("queues.staged-entry-card");
+  const queuesTableInspect = useInspectable("queues.queues-table");
 
   /**
    * Loads queue summaries for the list shown below the import workspace.
@@ -222,6 +225,7 @@ export function QueuesPage() {
     <div className="stack">
       <Card
         title="Stage submission imports"
+        inspectId="queues.stage-imports-card"
         actions={
           <div className="actions">
             <button type="button" className="button" disabled={importing} onClick={() => fileInputRef.current?.click()} {...addJsonInspect}>
@@ -239,7 +243,7 @@ export function QueuesPage() {
             Build an import batch by adding one or more JSON entries. For each entry, choose whether it should create a new
             queue or merge into an existing queue, then optionally map screenshots or PDFs before importing everything at once.
           </p>
-          <div className="stats">
+          <div className="stats" {...statsInspect}>
             <div>
               <strong>{batchSummary.queueCount}</strong>
               <span>Target queues</span>
@@ -265,7 +269,7 @@ export function QueuesPage() {
             }));
 
             return (
-              <div key={entry.id} className="staged-entry-card">
+              <div key={entry.id} className="staged-entry-card" {...stagedEntryCardInspect}>
                 <div className="staged-entry-header">
                   <div>
                     <strong>Entry {index + 1}: {entry.sourceFileName}</strong>
@@ -399,11 +403,11 @@ export function QueuesPage() {
         </div>
       </Card>
 
-      <Card title="Queues">
+      <Card title="Queues" inspectId="queues.queues-card">
         {loading ? <p>Loading queues…</p> : null}
         {!loading && queues.length === 0 ? <p className="muted">No queues yet. Import a JSON file first.</p> : null}
         {queues.length > 0 ? (
-          <div className="table-wrap">
+          <div className="table-wrap" {...queuesTableInspect}>
             <table>
               <thead>
                 <tr>

@@ -117,6 +117,9 @@ export function AnalyticsPage() {
   const queueFilterInspect = useInspectable("analytics.queue-filter");
   const timePresetInspect = useInspectable("analytics.time-preset");
   const closeInspect = useInspectable("analytics.close-expanded");
+  const overviewSectionInspect = useInspectable("analytics.overview-section");
+  const breakdownsSectionInspect = useInspectable("analytics.breakdowns-section");
+  const expandedModalInspect = useInspectable("analytics.expanded-modal");
 
   function rememberChartPointer(event: React.MouseEvent<HTMLDivElement>) {
     chartPointerRef.current = {
@@ -440,6 +443,7 @@ export function AnalyticsPage() {
     <div className="stack analytics-page">
       <Card
         title="Analytics"
+        inspectId="analytics.hero-card"
         actions={refreshing ? <span className="table-subtext">Updating…</span> : null}
       >
         <div className="analytics-hero">
@@ -456,7 +460,7 @@ export function AnalyticsPage() {
         </div>
       </Card>
 
-      <Card title="Filters">
+      <Card title="Filters" inspectId="analytics.filters-card">
         <div className="analytics-filter-grid">
           <label className="field">
             <span>Queue</span>
@@ -536,7 +540,7 @@ export function AnalyticsPage() {
 
       {analytics ? (
         <>
-          <section className="analytics-section">
+          <section className="analytics-section" {...overviewSectionInspect}>
             <div className="analytics-section-header">
               <div>
                 <h2>Overview</h2>
@@ -573,7 +577,7 @@ export function AnalyticsPage() {
             </div>
           </section>
 
-          <section className="analytics-section">
+          <section className="analytics-section" {...breakdownsSectionInspect}>
             <div className="analytics-section-header">
               <div>
                 <h2>Breakdowns</h2>
@@ -611,6 +615,7 @@ export function AnalyticsPage() {
             aria-modal="true"
             aria-labelledby="analytics-modal-title"
             onClick={(event) => event.stopPropagation()}
+            {...expandedModalInspect}
           >
             <div className="modal-header">
               <div>
@@ -634,7 +639,7 @@ export function AnalyticsPage() {
  */
 function KpiCard(props: { label: string; value: string; emphasis?: boolean }) {
   return (
-    <Card>
+    <Card inspectId="analytics.kpi-card">
       <div className={`kpi-card ${props.emphasis ? "kpi-card-emphasis" : ""}`}>
         <strong>{props.value}</strong>
         <span>{props.label}</span>
@@ -657,6 +662,7 @@ function AnalyticsChartCard(props: {
 
   return (
     <Card
+      inspectId="analytics.chart-card"
       actions={
         <button type="button" className="button" onClick={props.onExpand} {...expandInspect}>
           Expand

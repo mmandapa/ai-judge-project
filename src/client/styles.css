@@ -311,6 +311,9 @@ td {
   backdrop-filter: blur(18px);
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
 }
 
 .inspect-tooltip-header {
@@ -627,6 +630,9 @@ td {
   width: min(1100px, 100%);
   max-height: calc(100vh - 3rem);
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow: 0 28px 90px rgba(24, 34, 47, 0.24);

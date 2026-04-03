@@ -133,7 +133,7 @@ export function ResultsPage() {
 
   return (
     <div className="stack">
-      <Card title="Evaluation results">
+      <Card title="Evaluation results" inspectId="results.summary-card">
         {results ? (
           <div className="stats">
             <div>
@@ -152,7 +152,7 @@ export function ResultsPage() {
         ) : null}
       </Card>
 
-      <Card title="Filters">
+      <Card title="Filters" inspectId="results.filters-card">
         {results ? (
           <div className="stack">
             <div>
@@ -188,6 +188,7 @@ export function ResultsPage() {
 
       <Card
         title="Evaluations"
+        inspectId="results.table-card"
         actions={
           <button
             className="button"
@@ -240,9 +241,10 @@ export function ResultsPage() {
 function ResultRow(props: { row: EvaluationRow; deleting: boolean; onDelete: () => void }) {
   const verdict = props.row.status === "failed" ? "failed" : props.row.verdict;
   const deleteInspect = useInspectable("results.delete-row");
+  const rowInspect = useInspectable("results.result-row");
 
   return (
-    <tr>
+    <tr {...rowInspect}>
       <td>{props.row.submissionId}</td>
       <td>{props.row.questionText}</td>
       <td>{props.row.judgeName}</td>
