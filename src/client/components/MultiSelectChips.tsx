@@ -1,6 +1,8 @@
 /**
  * Reusable chip-based multi-select control.
  */
+import { useInspectable } from "../inspect/useInspectable";
+
 type Option = {
   id: string;
   label: string;
@@ -13,6 +15,7 @@ export function MultiSelectChips(props: {
   options: Option[];
   selected: string[];
   onChange: (next: string[]) => void;
+  inspectId?: string | ((option: Option) => string | null | undefined);
 }) {
   /**
    * Adds or removes a chip id from the selected set.
@@ -29,15 +32,34 @@ export function MultiSelectChips(props: {
   return (
     <div className="chip-group">
       {props.options.map((option) => (
-        <button
+        <ChipButton
           key={option.id}
-          type="button"
-          className={props.selected.includes(option.id) ? "chip chip-active" : "chip"}
+          option={option}
+          selected={props.selected.includes(option.id)}
           onClick={() => toggle(option.id)}
-        >
-          {option.label}
-        </button>
+          inspectId={typeof props.inspectId === "function" ? props.inspectId(option) : props.inspectId}
+        />
       ))}
     </div>
+  );
+}
+
+function ChipButton(props: {
+  option: Option;
+  selected: boolean;
+  onClick: () => void;
+  inspectId?: string | null;
+}) {
+  const inspectable = useInspectable(props.inspectId);
+
+  return (
+    <button
+      type="button"
+      className={props.selected ? "chip chip-active" : "chip"}
+      onClick={props.onClick}
+      {...inspectable}
+    >
+      {props.option.label}
+    </button>
   );
 }

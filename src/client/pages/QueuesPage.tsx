@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { parseImportedSubmissions } from "../../shared/parser";
 import type { BatchImportEntry, ImportTargetMode, ImportedSubmission, QueueSummary } from "../../shared/types";
 import { Card } from "../components/Card";
+import { useInspectable } from "../inspect/useInspectable";
 import { api, buildAttachmentId, buildSubmissionOptionLabel, type PendingSubmissionAttachment } from "../lib/api";
 
 type StagedImportEntry = {
@@ -38,6 +39,8 @@ export function QueuesPage() {
   const [importing, setImporting] = useState(false);
   const [stagedEntries, setStagedEntries] = useState<StagedImportEntry[]>([]);
   const [importSummary, setImportSummary] = useState<string | null>(null);
+  const addJsonInspect = useInspectable("queues.add-json-entry");
+  const importBatchInspect = useInspectable("queues.import-staged-batch");
 
   /**
    * Loads queue summaries for the list shown below the import workspace.
@@ -218,10 +221,10 @@ export function QueuesPage() {
         title="Stage submission imports"
         actions={
           <div className="actions">
-            <button type="button" className="button" disabled={importing} onClick={() => fileInputRef.current?.click()}>
+            <button type="button" className="button" disabled={importing} onClick={() => fileInputRef.current?.click()} {...addJsonInspect}>
               Add JSON entry
             </button>
-            <button className="button button-primary" disabled={importing || !canImport} onClick={() => void handleImportBatch()}>
+            <button className="button button-primary" disabled={importing || !canImport} onClick={() => void handleImportBatch()} {...importBatchInspect}>
               {importing ? "Importing..." : stagedEntries.length > 0 ? "Import staged batch" : "Add an entry first"}
             </button>
           </div>

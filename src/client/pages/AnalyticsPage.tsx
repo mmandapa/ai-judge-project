@@ -21,6 +21,7 @@ import { useSearchParams } from "react-router-dom";
 import type { AnalyticsResponse } from "../../shared/types";
 import { Card } from "../components/Card";
 import { MultiSelectChips } from "../components/MultiSelectChips";
+import { useInspectable } from "../inspect/useInspectable";
 import { api } from "../lib/api";
 
 type Preset = "24h" | "7d" | "30d" | "all" | "custom";
@@ -110,6 +111,8 @@ export function AnalyticsPage() {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const lastTriggerRef = useRef<HTMLElement | null>(null);
+  const queueFilterInspect = useInspectable("analytics.queue-filter");
+  const timePresetInspect = useInspectable("analytics.time-preset");
 
   const filters = useMemo(() => {
     const range = toRange(searchParams);
@@ -428,7 +431,7 @@ export function AnalyticsPage() {
         <div className="analytics-filter-grid">
           <label className="field">
             <span>Queue</span>
-            <select value={filters.queueId} onChange={(event) => updateSearch({ queueId: event.target.value })}>
+            <select value={filters.queueId} onChange={(event) => updateSearch({ queueId: event.target.value })} {...queueFilterInspect}>
               <option value="">All queues</option>
               {(available?.queues ?? []).map((queue) => (
                 <option key={queue.id} value={queue.id}>
@@ -446,6 +449,7 @@ export function AnalyticsPage() {
                   type="button"
                   className={`button ${filters.preset === option.id ? "button-primary" : ""}`}
                   onClick={() => updateSearch({ preset: option.id })}
+                  {...timePresetInspect}
                 >
                   {option.label}
                 </button>
@@ -473,6 +477,7 @@ export function AnalyticsPage() {
                 options={available.judges.map((judge) => ({ id: judge.id, label: judge.name }))}
                 selected={filters.judgeIds}
                 onChange={(next) => updateSearch({ judgeIds: next })}
+                inspectId="analytics.filter-judges"
               />
             </div>
             <div>
@@ -481,6 +486,7 @@ export function AnalyticsPage() {
                 options={available.questions.map((question) => ({ id: question.id, label: question.text }))}
                 selected={filters.questionTemplateIds}
                 onChange={(next) => updateSearch({ questionTemplateIds: next })}
+                inspectId="analytics.filter-questions"
               />
             </div>
             <div>
@@ -489,6 +495,7 @@ export function AnalyticsPage() {
                 options={["pass", "fail", "inconclusive", "failed"].map((verdict) => ({ id: verdict, label: verdict }))}
                 selected={filters.verdicts}
                 onChange={(next) => updateSearch({ verdicts: next })}
+                inspectId="analytics.filter-verdicts"
               />
             </div>
           </div>
@@ -522,6 +529,7 @@ export function AnalyticsPage() {
                 title={chartMeta.judge.title}
                 subtitle={chartMeta.judge.subtitle}
                 onExpand={(event) => openExpanded("judge", event)}
+                inspectId="analytics.expand-chart"
               >
                 {renderJudgeChart(false)}
               </AnalyticsChartCard>
@@ -529,6 +537,7 @@ export function AnalyticsPage() {
                 title={chartMeta.trend.title}
                 subtitle={chartMeta.trend.subtitle}
                 onExpand={(event) => openExpanded("trend", event)}
+                inspectId="analytics.expand-chart"
               >
                 {renderTrendChart(false)}
               </AnalyticsChartCard>
@@ -547,6 +556,7 @@ export function AnalyticsPage() {
                 title={chartMeta.verdict.title}
                 subtitle={chartMeta.verdict.subtitle}
                 onExpand={(event) => openExpanded("verdict", event)}
+                inspectId="analytics.expand-chart"
               >
                 {renderVerdictChart(false)}
               </AnalyticsChartCard>
@@ -554,6 +564,7 @@ export function AnalyticsPage() {
                 title={chartMeta.question.title}
                 subtitle={chartMeta.question.subtitle}
                 onExpand={(event) => openExpanded("question", event)}
+                inspectId="analytics.expand-chart"
               >
                 {renderQuestionChart(false)}
               </AnalyticsChartCard>
@@ -611,11 +622,14 @@ function AnalyticsChartCard(props: {
   subtitle: string;
   children: ReactNode;
   onExpand: (event: MouseEvent<HTMLButtonElement>) => void;
+  inspectId?: string;
 }) {
+  const expandInspect = useInspectable(props.inspectId);
+
   return (
     <Card
       actions={
-        <button type="button" className="button" onClick={props.onExpand}>
+        <button type="button" className="button" onClick={props.onExpand} {...expandInspect}>
           Expand
         </button>
       }

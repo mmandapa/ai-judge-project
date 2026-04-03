@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { EvaluationRow, ResultsResponse } from "../../shared/types";
 import { Card } from "../components/Card";
 import { MultiSelectChips } from "../components/MultiSelectChips";
+import { useInspectable } from "../inspect/useInspectable";
 import { StatusBadge } from "../components/StatusBadge";
 import { api } from "../lib/api";
 
@@ -21,6 +22,7 @@ export function ResultsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [clearingAll, setClearingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const clearVisibleInspect = useInspectable("results.clear-visible");
 
   /**
    * Fetches results using the current or provided filter state.
@@ -159,6 +161,7 @@ export function ResultsPage() {
                 options={results.availableFilters.judges.map((judge) => ({ id: judge.id, label: judge.name }))}
                 selected={judgeIds}
                 onChange={(next) => void updateFilters({ judgeIds: next })}
+                inspectId="results.filter-judges"
               />
             </div>
             <div>
@@ -167,6 +170,7 @@ export function ResultsPage() {
                 options={results.availableFilters.questions.map((question) => ({ id: question.id, label: question.text }))}
                 selected={questionIds}
                 onChange={(next) => void updateFilters({ questionIds: next })}
+                inspectId="results.filter-questions"
               />
             </div>
             <div>
@@ -175,6 +179,7 @@ export function ResultsPage() {
                 options={["pass", "fail", "inconclusive"].map((verdict) => ({ id: verdict, label: verdict }))}
                 selected={verdicts}
                 onChange={(next) => void updateFilters({ verdicts: next })}
+                inspectId="results.filter-verdicts"
               />
             </div>
           </div>
@@ -188,6 +193,7 @@ export function ResultsPage() {
             className="button"
             onClick={() => void handleClearVisible()}
             disabled={clearingAll || loading || !results || results.rows.length === 0}
+            {...clearVisibleInspect}
           >
             {clearingAll ? "Deleting..." : "Clear visible"}
           </button>
@@ -233,6 +239,7 @@ export function ResultsPage() {
  */
 function ResultRow(props: { row: EvaluationRow; deleting: boolean; onDelete: () => void }) {
   const verdict = props.row.status === "failed" ? "failed" : props.row.verdict;
+  const deleteInspect = useInspectable("results.delete-row");
 
   return (
     <tr>
@@ -245,7 +252,7 @@ function ResultRow(props: { row: EvaluationRow; deleting: boolean; onDelete: () 
       <td>{props.row.errorMessage ?? props.row.reasoning}</td>
       <td>{new Date(props.row.createdAt).toLocaleString()}</td>
       <td>
-        <button className="button button-danger" onClick={props.onDelete} disabled={props.deleting}>
+        <button className="button button-danger" onClick={props.onDelete} disabled={props.deleting} {...deleteInspect}>
           {props.deleting ? "Deleting..." : "Delete"}
         </button>
       </td>

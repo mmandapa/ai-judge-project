@@ -11,6 +11,7 @@ import { coerceImportedSubmissionsToQueue, parseImportedSubmissions } from "../.
 import { defaultPromptFieldConfig } from "../../shared/types";
 import { Card } from "../components/Card";
 import { MultiSelectChips } from "../components/MultiSelectChips";
+import { useInspectable } from "../inspect/useInspectable";
 import { api, buildAttachmentId, buildSubmissionOptionLabel, type PendingSubmissionAttachment } from "../lib/api";
 
 /**
@@ -45,6 +46,10 @@ export function QueueDetailPage() {
   const [appendPendingAttachments, setAppendPendingAttachments] = useState<PendingSubmissionAttachment[]>([]);
   const [appending, setAppending] = useState(false);
   const [appendSummary, setAppendSummary] = useState<string | null>(null);
+  const saveInspect = useInspectable("queue.save-setup");
+  const runInspect = useInspectable("queue.run-queue");
+  const judgesInspect = useInspectable("queue.create-or-edit-judges");
+  const appendInspect = useInspectable("queue.append-submissions");
 
   /**
    * Loads the queue setup data and reusable judge list.
@@ -327,10 +332,10 @@ export function QueueDetailPage() {
         title={`Queue setup: ${detail.queue.id}`}
         actions={
           <div className="actions">
-            <button className="button" onClick={handleSaveAssignments} disabled={savingAssignments}>
+            <button className="button" onClick={handleSaveAssignments} disabled={savingAssignments} {...saveInspect}>
               {savingAssignments ? "Saving..." : "Save setup"}
             </button>
-            <button className="button button-primary" onClick={handleRun} disabled={running}>
+            <button className="button button-primary" onClick={handleRun} disabled={running} {...runInspect}>
               {running ? "Running..." : "Run queue"}
             </button>
           </div>
@@ -355,7 +360,7 @@ export function QueueDetailPage() {
           judge sees, then run the queue.
         </p>
         <div className="actions">
-          <Link className="button" to={`/judges?returnTo=${encodeURIComponent(`/queues/${detail.queue.id}`)}`}>
+          <Link className="button" to={`/judges?returnTo=${encodeURIComponent(`/queues/${detail.queue.id}`)}`} {...judgesInspect}>
             Create or edit judges
           </Link>
           <Link to="/results">View results</Link>
@@ -382,7 +387,7 @@ export function QueueDetailPage() {
       <Card
         title="1. Add submissions"
         actions={
-          <button className="button button-primary" onClick={() => void handleAppendSubmissions()} disabled={appending || !canAppend}>
+          <button className="button button-primary" onClick={() => void handleAppendSubmissions()} disabled={appending || !canAppend} {...appendInspect}>
             {appending ? "Adding..." : appendJsonFile ? "Add to this queue" : "Choose JSON first"}
           </button>
         }

@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { JudgeRecord } from "../../shared/types";
 import { Card } from "../components/Card";
+import { useInspectable } from "../inspect/useInspectable";
 import { api } from "../lib/api";
 
 type JudgeFormState = {
@@ -39,6 +40,10 @@ export function JudgesPage() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const returnTo = searchParams.get("returnTo");
+  const backInspect = useInspectable("judges.back-to-queue");
+  const saveInspect = useInspectable("judges.save");
+  const deleteInspect = useInspectable("judges.delete");
+  const selectJudgeInspect = useInspectable("judges.select-card");
 
   /**
    * Loads the current judge list from the backend.
@@ -116,7 +121,7 @@ export function JudgesPage() {
       <Card title={form.id ? "Edit judge" : "New judge"}>
         {returnTo ? (
           <div className="actions">
-            <Link className="button" to={returnTo}>
+            <Link className="button" to={returnTo} {...backInspect}>
               Back to queue setup
             </Link>
           </div>
@@ -156,7 +161,7 @@ export function JudgesPage() {
             <span>Active judge</span>
           </label>
           <div className="actions">
-            <button className="button button-primary" disabled={saving}>
+            <button className="button button-primary" disabled={saving} {...saveInspect}>
               {saving ? "Saving..." : form.id ? "Update judge" : "Create judge"}
             </button>
             {form.id ? (
@@ -165,7 +170,7 @@ export function JudgesPage() {
               </button>
             ) : null}
             {form.id ? (
-              <button type="button" className="button button-danger" onClick={() => void handleDeleteJudge()} disabled={deleting}>
+              <button type="button" className="button button-danger" onClick={() => void handleDeleteJudge()} disabled={deleting} {...deleteInspect}>
                 {deleting ? "Deleting..." : "Delete judge"}
               </button>
             ) : null}
@@ -182,7 +187,7 @@ export function JudgesPage() {
         {!loading && judges.length === 0 ? <p className="muted">Create your first judge to start assigning reviews.</p> : null}
         <div className="stack">
           {judges.map((judge) => (
-            <button key={judge.id} type="button" className="judge-card" onClick={() => setForm(judge)}>
+            <button key={judge.id} type="button" className="judge-card" onClick={() => setForm(judge)} {...selectJudgeInspect}>
               <div className="judge-card-top">
                 <strong>{judge.name}</strong>
                 <span className={judge.active ? "pill pill-active" : "pill"}>{judge.active ? "Active" : "Inactive"}</span>
